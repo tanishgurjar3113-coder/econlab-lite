@@ -1,28 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTextStyles {
   AppTextStyles._();
 
-  static const TextStyle heading = TextStyle(
+  static TextStyle heading = GoogleFonts.poppins(
     fontSize: 32,
     fontWeight: FontWeight.bold,
     color: AppColors.textPrimary,
   );
 
-  static const TextStyle subheading = TextStyle(
+  static TextStyle subheading = GoogleFonts.poppins(
     fontSize: 18,
     fontWeight: FontWeight.w500,
     color: AppColors.textSecondary,
   );
 
-  static const TextStyle cardTitle = TextStyle(
+  static TextStyle sectionTitle = GoogleFonts.poppins(
+    fontSize: 22,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textPrimary,
+  );
+
+  static TextStyle cardTitle = GoogleFonts.poppins(
     fontSize: 20,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
   );
 
-  static const TextStyle cardSubtitle = TextStyle(
+  static TextStyle cardSubtitle = GoogleFonts.poppins(
     fontSize: 15,
     color: AppColors.textSecondary,
   );

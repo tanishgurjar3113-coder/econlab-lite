@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/tool_card.dart';
+import '../../widgets/hero_section.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -16,25 +17,8 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 10),
 
-            const Text(
-              "Welcome Back!",
-              style : TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 8),
-
-            const Text(
-              "Learn. Calculate. Invest.",
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey,
-              ),
-            ),
+            const HeroSection(),
 
             const SizedBox(height: 30),
 
