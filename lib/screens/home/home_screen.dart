@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../widgets/tool_card.dart';
 import '../../widgets/hero_section.dart';
+import '../compound_interest/compound_interest_screen.dart';
+import '../inflation/inflation_screen.dart';
+import '../emi/emi_screen.dart';
+
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -32,22 +36,49 @@ class HomeScreen extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            const ToolCard(
+            ToolCard(
               icon: Icons.trending_up,
               title: "Compound Interest",
               subtitle: "Grow your investments over time",
+              
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const CompoundInterestScreen(),
+                  ),
+                );
+              },
             ),
 
-            const ToolCard(
+            ToolCard(
               icon: Icons.show_chart,
               title: "Inflation Calculator",
               subtitle: "Measure your purchasing power",
 
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const InflationScreen(),
+                  ),
+                );
+              }
             ),
-            const ToolCard(
+
+            ToolCard(
               icon: Icons.account_balance,
               title: "EMI Calculator",
               subtitle: "Plan your loan repayments",
+
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EmiScreen(),
+                  ),
+                );
+              }
             ),
           ],
         ),
