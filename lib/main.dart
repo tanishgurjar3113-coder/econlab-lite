@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/home/home_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const EconLabApp());
@@ -13,10 +14,7 @@ class EconLabApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EconLab Lite',
-      theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       home: const HomeScreen(),
     );
   }
