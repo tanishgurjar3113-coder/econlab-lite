@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/app_text_field.dart';
 import 'dart:math';
 import '../../widgets/primary_button.dart';
+import '../../widgets/result_card.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -21,19 +22,48 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
   int frequency = 1;
 
-  void  calculateCompoundInterest() {
-    final double principal = double.tryParse(principalController.text) ?? 0;
-    final double rate = double.tryParse(rateController.text) ?? 0;
-    final double time = double.tryParse(timeController.text) ?? 0;
-    
-    // The Formula
-    final double result = principal * pow(1 + (rate / 100)
-    / frequency, frequency * time,);
+void calculateCompoundInterest() {
+  final double? principal =
+      double.tryParse(principalController.text);
 
-    setState(() {
-      futureValue = result;
-      });
+  final double? rate =
+      double.tryParse(rateController.text);
+
+  final double? time =
+      double.tryParse(timeController.text);
+
+  if (principal == null || principal <= 0) {
+    showError("Please enter a valid principal amount.");
+    return;
   }
+
+  if (rate == null || rate < 0) {
+    showError("Please enter a valid interest rate");
+    return;
+  }
+
+    if (time == null || time <= 0) {
+    showError("Please enter a valid time period");
+    return;
+  }
+
+  final double result = principal *
+      pow(1 + (rate / 100) / frequency,
+        frequency * time,
+      );
+
+  setState(() {
+    futureValue = result;
+  });
+}
+
+void showError(String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+    ),
+  );
+}
 
   @override
   void dispose() {
@@ -102,6 +132,46 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
               keyboardType: TextInputType.number,
             ),
 
+            const SizedBox(height: 16),
+
+            DropdownButtonFormField<int>(
+              initialValue: frequency,
+              decoration: InputDecoration(
+                labelText: "Compounding Frequency",
+                prefixIcon: const Icon(Icons.repeat),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+                ),
+                filled: true,
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 1,
+                  child: Text("Annually"),
+                ),
+                  DropdownMenuItem(
+                  value: 2,
+                  child: Text("Semi-Annually"),
+                ),
+                  DropdownMenuItem(
+                  value: 4,
+                  child: Text("Quarterly"),
+                ),
+                  DropdownMenuItem(
+                  value: 12,
+                  child: Text("Monthly"),
+                ),
+                  DropdownMenuItem(
+                  value: 365,
+                  child: Text("Daily"),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  frequency = value ?? 1;
+                });
+              },
+            ),
+
             const SizedBox(height: 24),
 
             PrimaryButton(
@@ -109,6 +179,14 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
               icon: Icons.calculate,
               onPressed: calculateCompoundInterest,
             ),
+
+            const SizedBox(height: 30),
+
+            ResultCard(
+              title: "Future Value",
+              value: "₹${futureValue.toStringAsFixed(2)}",
+              subtitle: "Total amount after your selected period",
+            )
           ],
         ),
       ),

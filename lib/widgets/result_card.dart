@@ -32,6 +32,15 @@ class ResultCard extends StatelessWidget {
               ),
             ),
 
+            const SizedBox(height: 8),
+
+            Text(
+              value, style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
             if (subtitle != null) ...[
               const SizedBox(height: 6),
               Text(
