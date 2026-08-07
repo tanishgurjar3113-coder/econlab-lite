@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/app_text_field.dart';
+import 'dart:math';
+import '../../widgets/primary_button.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -18,6 +20,20 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   double futureValue = 0.0;
 
   int frequency = 1;
+
+  void  calculateCompoundInterest() {
+    final double principal = double.tryParse(principalController.text) ?? 0;
+    final double rate = double.tryParse(rateController.text) ?? 0;
+    final double time = double.tryParse(timeController.text) ?? 0;
+    
+    // The Formula
+    final double result = principal * pow(1 + (rate / 100)
+    / frequency, frequency * time,);
+
+    setState(() {
+      futureValue = result;
+      });
+  }
 
   @override
   void dispose() {
@@ -86,6 +102,13 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
               keyboardType: TextInputType.number,
             ),
 
+            const SizedBox(height: 24),
+
+            PrimaryButton(
+              text: "Calculate",
+              icon: Icons.calculate,
+              onPressed: calculateCompoundInterest,
+            ),
           ],
         ),
       ),
