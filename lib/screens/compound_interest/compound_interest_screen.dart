@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/app_text_field.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -58,40 +59,31 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
           // Principal Amount Field
             const SizedBox(height: 30),
 
-            TextField(
+            AppTextField(
               controller: principalController,
+              label: "Principal Amount",
+              icon: Icons.account_balance_wallet,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: "Principal Amount",
-                prefixIcon: Icon(Icons.account_balance_wallet),
-                border: OutlineInputBorder(),
-              ),
-            ),
+            ),  
 
             const SizedBox(height: 20),
 
             // Interest Rate Field
-            TextField(
+            AppTextField(
               controller: rateController,
+              label: "Annual Interest Rate (%)",
+              icon: Icons.percent,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: "Annual Interest Rate (%)",
-                prefixIcon: Icon(Icons.percent),
-                border: OutlineInputBorder(),
-              ),
             ),
 
             const SizedBox(height: 20),
 
             // Time Field
-            TextField(
+            AppTextField(
               controller: timeController,
+              label: "Time (Years)",
+              icon: Icons.calendar_today,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: "Time (Years)",
-                prefixIcon: Icon(Icons.calendar_today),
-                border: OutlineInputBorder(),
-              ),
             ),
 
           ],
