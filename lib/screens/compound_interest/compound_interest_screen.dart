@@ -5,6 +5,7 @@ import '../../widgets/primary_button.dart';
 import '../../widgets/result_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../widgets/growth_chart_card.dart';
+import '../../widgets/investment_breakdown_card.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -25,6 +26,8 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   List<double> growthData = [];
 
   int frequency = 1;
+
+  double investedAmount = 0.0;
 
 void calculateCompoundInterest() {
   final double? principal =
@@ -69,7 +72,23 @@ void calculateCompoundInterest() {
   setState(() {
     futureValue = result;
     growthData = yearlyGrowth;
+    investedAmount = principal;
   });
+}
+
+void resetCalculator() {
+  principalController.clear();
+  rateController.clear();
+  timeController.clear();
+
+  setState(() {
+    futureValue = 0.0;
+    growthData = [];
+    investedAmount = 0.0;
+    frequency = 1;
+  });
+
+  FocusScope.of(context). unfocus();
 }
 
 void showError(String message) {
@@ -195,6 +214,14 @@ void showError(String message) {
               onPressed: calculateCompoundInterest,
             ),
 
+            const SizedBox(height: 12),
+
+            OutlinedButton.icon(
+              onPressed: resetCalculator,
+              icon: const Icon(Icons.refresh),
+              label: const Text("Reset Calculator"),
+            ),
+
             const SizedBox(height: 30),
 
             ResultCard(
@@ -204,6 +231,13 @@ void showError(String message) {
             ),
 
             if (growthData.isNotEmpty) ...[
+              const SizedBox(height: 24),
+
+              InvestmentBreakdownCard(
+                investedAmount: investedAmount,
+                interestEarned: futureValue - investedAmount
+              ),
+              
               const SizedBox(height: 24),
 
               GrowthChartCard(
