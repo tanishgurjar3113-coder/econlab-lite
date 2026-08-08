@@ -3,6 +3,8 @@ import '../../widgets/app_text_field.dart';
 import 'dart:math';
 import '../../widgets/primary_button.dart';
 import '../../widgets/result_card.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../../widgets/growth_chart_card.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -19,6 +21,8 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   final TextEditingController timeController = TextEditingController();
 
   double futureValue = 0.0;
+
+  List<double> growthData = [];
 
   int frequency = 1;
 
@@ -52,8 +56,19 @@ void calculateCompoundInterest() {
         frequency * time,
       );
 
+  final List<double> yearlyGrowth = [];
+
+  for (int year = 0; year <= time; year++) {
+    final double amount = principal * 
+        pow(1 + (rate / 100) / frequency,
+        frequency * year);
+
+    yearlyGrowth.add(amount);
+  }
+
   setState(() {
     futureValue = result;
+    growthData = yearlyGrowth;
   });
 }
 
@@ -186,7 +201,64 @@ void showError(String message) {
               title: "Future Value",
               value: "₹${futureValue.toStringAsFixed(2)}",
               subtitle: "Total amount after your selected period",
-            )
+            ),
+
+            if (growthData.isNotEmpty) ...[
+              const SizedBox(height: 24),
+
+              GrowthChartCard(
+                title: "Investment Growth",
+                chart: LineChart(
+                  LineChartData(
+                    gridData: const FlGridData(show: true),
+                    borderData: FlBorderData(show: false),
+                    titlesData: FlTitlesData(
+                      topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false),  
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true, interval: 1,
+                          getTitlesWidget: (value, meta) {
+                            return Text("Year ${value.toInt()}",
+                            style: const TextStyle(fontSize: 10),
+                            );
+                          },
+                        ),
+                      ),
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          reservedSize: 50,
+                          getTitlesWidget: (value, meta) {
+                            return Text( "₹${value.toInt()}",
+                            style: const TextStyle(fontSize: 10),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: List.generate(
+                          growthData.length, (index) => FlSpot(
+                            index.toDouble(), growthData[index],
+                          ),
+                        ),
+                        isCurved: true,
+                        color: Colors.indigo,
+                        barWidth: 4, 
+                        dotData: const FlDotData(show: true),
+                        belowBarData: BarAreaData(show: true,
+                        color: Colors.indigo.withValues(alpha: 0.12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
