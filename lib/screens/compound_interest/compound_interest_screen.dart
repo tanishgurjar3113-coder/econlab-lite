@@ -18,7 +18,6 @@ class CompoundInterestScreen extends StatefulWidget {
 }
 
 class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
-
   //Controllers
   final TextEditingController principalController = TextEditingController();
   final TextEditingController rateController = TextEditingController();
@@ -32,79 +31,94 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
   double investedAmount = 0.0;
 
-void calculateCompoundInterest() {
-  final double? principal =
-      double.tryParse(principalController.text);
-
-  final double? rate =
-      double.tryParse(rateController.text);
-
-  final double? time =
-      double.tryParse(timeController.text);
-
-  if (principal == null || principal <= 0) {
-    showError("Please enter a valid principal amount.");
-    return;
+  bool get canCalculate {
+    return principalController.text.trim().isNotEmpty &&
+        rateController.text.trim().isNotEmpty &&
+        timeController.text.trim().isNotEmpty;
   }
 
-  if (rate == null || rate < 0) {
-    showError("Please enter a valid interest rate");
-    return;
+  @override
+  void initState() {
+    super.initState();
+
+    principalController.addListener(_onInputChanged);
+    rateController.addListener(_onInputChanged);
+    timeController.addListener(_onInputChanged);
   }
+
+  void _onInputChanged() {
+    setState(() {});
+  }
+
+  void calculateCompoundInterest() {
+    final double? principal = double.tryParse(principalController.text);
+
+    final double? rate = double.tryParse(rateController.text);
+
+    final double? time = double.tryParse(timeController.text);
+
+    if (principal == null || principal <= 0) {
+      showError("Please enter a valid principal amount.");
+      return;
+    }
+
+    if (rate == null || rate < 0) {
+      showError("Please enter a valid interest rate");
+      return;
+    }
 
     if (time == null || time <= 0) {
-    showError("Please enter a valid time period");
-    return;
+      showError("Please enter a valid time period");
+      return;
+    }
+
+    final double result =
+        principal * pow(1 + (rate / 100) / frequency, frequency * time);
+
+    final List<double> yearlyGrowth = [];
+
+    for (int year = 0; year <= time; year++) {
+      final double amount =
+          principal * pow(1 + (rate / 100) / frequency, frequency * year);
+
+      yearlyGrowth.add(amount);
+    }
+
+    setState(() {
+      futureValue = result;
+      growthData = yearlyGrowth;
+      investedAmount = principal;
+    });
   }
 
-  final double result = principal *
-      pow(1 + (rate / 100) / frequency,
-        frequency * time,
-      );
+  //Clears input and returns the calculator to its initial state
+  void resetCalculator() {
+    principalController.clear();
+    rateController.clear();
+    timeController.clear();
 
-  final List<double> yearlyGrowth = [];
+    setState(() {
+      futureValue = 0.0;
+      growthData = [];
+      investedAmount = 0.0;
+      frequency = 1;
+    });
 
-  for (int year = 0; year <= time; year++) {
-    final double amount = principal * 
-        pow(1 + (rate / 100) / frequency,
-        frequency * year);
-
-    yearlyGrowth.add(amount);
+    FocusScope.of(context).unfocus();
   }
 
-  setState(() {
-    futureValue = result;
-    growthData = yearlyGrowth;
-    investedAmount = principal;
-  });
-}
-
-//Clears input and returns the calculator to its initial state 
-void resetCalculator() {
-  principalController.clear();
-  rateController.clear();
-  timeController.clear();
-
-  setState(() {
-    futureValue = 0.0;
-    growthData = [];
-    investedAmount = 0.0;
-    frequency = 1;
-  });
-
-  FocusScope.of(context). unfocus();
-}
-
-void showError(String message) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-    ),
-  );
-}
+  void showError(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   void dispose() {
+    principalController.removeListener(_onInputChanged);
+    rateController.removeListener(_onInputChanged);
+    timeController.removeListener(_onInputChanged);
+
     principalController.dispose();
     rateController.dispose();
     timeController.dispose();
@@ -114,9 +128,7 @@ void showError(String message) {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Compound Interest"),
-      ),
+      appBar: AppBar(title: const Text("Compound Interest")),
       body: GradientBackground(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -127,24 +139,18 @@ void showError(String message) {
                 delay: const Duration(milliseconds: 100),
                 child: const Text(
                   "Compound Interest Calculator",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ), 
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                ),
               ),
 
               const SizedBox(height: 8),
 
               const Text(
                 "Calculate how your investments grow over time.",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
 
-            // Principal Amount Field
+              // Principal Amount Field
               const SizedBox(height: 30),
 
               AnimatedEntry(
@@ -155,7 +161,7 @@ void showError(String message) {
                   icon: Icons.account_balance_wallet,
                   keyboardType: TextInputType.number,
                 ),
-              ),  
+              ),
 
               const SizedBox(height: 20),
 
@@ -192,31 +198,17 @@ void showError(String message) {
                   decoration: InputDecoration(
                     labelText: "Compounding Frequency",
                     prefixIcon: const Icon(Icons.repeat),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     filled: true,
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: 1,
-                      child: Text("Annually"),
-                    ),
-                      DropdownMenuItem(
-                      value: 2,
-                      child: Text("Semi-Annually"),
-                    ),
-                      DropdownMenuItem(
-                      value: 4,
-                      child: Text("Quarterly"),
-                    ),
-                      DropdownMenuItem(
-                      value: 12,
-                      child: Text("Monthly"),
-                    ),
-                      DropdownMenuItem(
-                      value: 365,
-                      child: Text("Daily"),
-                    ),
+                    DropdownMenuItem(value: 1, child: Text("Annually")),
+                    DropdownMenuItem(value: 2, child: Text("Semi-Annually")),
+                    DropdownMenuItem(value: 4, child: Text("Quarterly")),
+                    DropdownMenuItem(value: 12, child: Text("Monthly")),
+                    DropdownMenuItem(value: 365, child: Text("Daily")),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -225,14 +217,31 @@ void showError(String message) {
                   },
                 ),
               ),
-              
 
               const SizedBox(height: 24),
 
-              PrimaryButton(
-                text: "Calculate",
-                icon: Icons.calculate,
-                onPressed: calculateCompoundInterest,
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.15),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: canCalculate
+                    ? PrimaryButton(
+                        key: const ValueKey("calculate"),
+                        text: "Calculate",
+                        icon: Icons.calculate,
+                        onPressed: calculateCompoundInterest,
+                      )
+                    : const SizedBox.shrink(key: ValueKey("empty")),
               ),
 
               const SizedBox(height: 12),
@@ -256,9 +265,9 @@ void showError(String message) {
 
                 InvestmentBreakdownCard(
                   investedAmount: investedAmount,
-                  interestEarned: futureValue - investedAmount
+                  interestEarned: futureValue - investedAmount,
                 ),
-                
+
                 const SizedBox(height: 24),
 
                 GrowthChartCard(
@@ -269,14 +278,16 @@ void showError(String message) {
                       borderData: FlBorderData(show: false),
                       titlesData: FlTitlesData(
                         topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),  
+                          sideTitles: SideTitles(showTitles: false),
                         ),
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
-                            showTitles: true, interval: 1,
+                            showTitles: true,
+                            interval: 1,
                             getTitlesWidget: (value, meta) {
-                              return Text("Year ${value.toInt()}",
-                              style: const TextStyle(fontSize: 10),
+                              return Text(
+                                "Year ${value.toInt()}",
+                                style: const TextStyle(fontSize: 10),
                               );
                             },
                           ),
@@ -286,8 +297,9 @@ void showError(String message) {
                             showTitles: true,
                             reservedSize: 50,
                             getTitlesWidget: (value, meta) {
-                              return Text( "₹${value.toInt()}",
-                              style: const TextStyle(fontSize: 10),
+                              return Text(
+                                "₹${value.toInt()}",
+                                style: const TextStyle(fontSize: 10),
                               );
                             },
                           ),
@@ -297,16 +309,17 @@ void showError(String message) {
                       lineBarsData: [
                         LineChartBarData(
                           spots: List.generate(
-                            growthData.length, (index) => FlSpot(
-                              index.toDouble(), growthData[index],
-                            ),
+                            growthData.length,
+                            (index) =>
+                                FlSpot(index.toDouble(), growthData[index]),
                           ),
                           isCurved: true,
                           color: Colors.indigo,
-                          barWidth: 4, 
+                          barWidth: 4,
                           dotData: const FlDotData(show: true),
-                          belowBarData: BarAreaData(show: true,
-                          color: Colors.indigo.withValues(alpha: 0.12),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: Colors.indigo.withValues(alpha: 0.12),
                           ),
                         ),
                       ],
@@ -318,7 +331,6 @@ void showError(String message) {
           ),
         ),
       ),
-    ); 
+    );
   }
 }
-              
