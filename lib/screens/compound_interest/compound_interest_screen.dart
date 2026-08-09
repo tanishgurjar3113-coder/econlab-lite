@@ -8,6 +8,7 @@ import '../../widgets/growth_chart_card.dart';
 import '../../widgets/investment_breakdown_card.dart';
 import '../../widgets/gradient_background.dart';
 import '../../utils/currency_formatter.dart';
+import '../../animations/animated_entry.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -122,12 +123,15 @@ void showError(String message) {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Compound Interest Calculator",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 100),
+                child: const Text(
+                  "Compound Interest Calculator",
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ), 
               ),
 
               const SizedBox(height: 8),
@@ -143,72 +147,85 @@ void showError(String message) {
             // Principal Amount Field
               const SizedBox(height: 30),
 
-              AppTextField(
-                controller: principalController,
-                label: "Principal Amount",
-                icon: Icons.account_balance_wallet,
-                keyboardType: TextInputType.number,
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 200),
+                child: AppTextField(
+                  controller: principalController,
+                  label: "Principal Amount",
+                  icon: Icons.account_balance_wallet,
+                  keyboardType: TextInputType.number,
+                ),
               ),  
 
               const SizedBox(height: 20),
 
               // Interest Rate Field
-              AppTextField(
-                controller: rateController,
-                label: "Annual Interest Rate (%)",
-                icon: Icons.percent,
-                keyboardType: TextInputType.number,
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 300),
+                child: AppTextField(
+                  controller: rateController,
+                  label: "Annual Interest Rate (%)",
+                  icon: Icons.percent,
+                  keyboardType: TextInputType.number,
+                ),
               ),
 
               const SizedBox(height: 20),
 
               // Time Field
-              AppTextField(
-                controller: timeController,
-                label: "Time (Years)",
-                icon: Icons.calendar_today,
-                keyboardType: TextInputType.number,
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 400),
+                child: AppTextField(
+                  controller: timeController,
+                  label: "Time (Years)",
+                  icon: Icons.calendar_today,
+                  keyboardType: TextInputType.number,
+                ),
               ),
 
               const SizedBox(height: 16),
 
-              DropdownButtonFormField<int>(
-                initialValue: frequency,
-                decoration: InputDecoration(
-                  labelText: "Compounding Frequency",
-                  prefixIcon: const Icon(Icons.repeat),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 500),
+                child: DropdownButtonFormField<int>(
+                  initialValue: frequency,
+                  decoration: InputDecoration(
+                    labelText: "Compounding Frequency",
+                    prefixIcon: const Icon(Icons.repeat),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+                    ),
+                    filled: true,
                   ),
-                  filled: true,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 1,
+                      child: Text("Annually"),
+                    ),
+                      DropdownMenuItem(
+                      value: 2,
+                      child: Text("Semi-Annually"),
+                    ),
+                      DropdownMenuItem(
+                      value: 4,
+                      child: Text("Quarterly"),
+                    ),
+                      DropdownMenuItem(
+                      value: 12,
+                      child: Text("Monthly"),
+                    ),
+                      DropdownMenuItem(
+                      value: 365,
+                      child: Text("Daily"),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      frequency = value ?? 1;
+                    });
+                  },
                 ),
-                items: const [
-                  DropdownMenuItem(
-                    value: 1,
-                    child: Text("Annually"),
-                  ),
-                    DropdownMenuItem(
-                    value: 2,
-                    child: Text("Semi-Annually"),
-                  ),
-                    DropdownMenuItem(
-                    value: 4,
-                    child: Text("Quarterly"),
-                  ),
-                    DropdownMenuItem(
-                    value: 12,
-                    child: Text("Monthly"),
-                  ),
-                    DropdownMenuItem(
-                    value: 365,
-                    child: Text("Daily"),
-                  ),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    frequency = value ?? 1;
-                  });
-                },
               ),
+              
 
               const SizedBox(height: 24),
 
