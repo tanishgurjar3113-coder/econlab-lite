@@ -4,6 +4,7 @@ import '../../widgets/hero_section.dart';
 import '../compound_interest/compound_interest_screen.dart';
 import '../inflation/inflation_screen.dart';
 import '../emi/emi_screen.dart';
+import '../../widgets/gradient_background.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -16,71 +17,73 @@ class HomeScreen extends StatelessWidget {
         title: const Text("EconLab Lite"),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: GradientBackground(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
-            const HeroSection(),
+              const HeroSection(),
 
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
-            const Text(
-              "Financial Tools",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+              const Text(
+                "Financial Tools",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
 
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-            ToolCard(
-              icon: Icons.trending_up,
-              title: "Compound Interest",
-              subtitle: "Grow your investments over time",
-              
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const CompoundInterestScreen(),
-                  ),
-                );
-              },
-            ),
+              ToolCard(
+                icon: Icons.trending_up,
+                title: "Compound Interest",
+                subtitle: "Grow your investments over time",
+                
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CompoundInterestScreen(),
+                    ),
+                  );
+                },
+              ),
 
-            ToolCard(
-              icon: Icons.show_chart,
-              title: "Inflation Calculator",
-              subtitle: "Measure your purchasing power",
+              ToolCard(
+                icon: Icons.show_chart,
+                title: "Inflation Calculator",
+                subtitle: "Measure your purchasing power",
 
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const InflationScreen(),
-                  ),
-                );
-              }
-            ),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const InflationScreen(),
+                    ),
+                  );
+                }
+              ),
 
-            ToolCard(
-              icon: Icons.account_balance,
-              title: "EMI Calculator",
-              subtitle: "Plan your loan repayments",
+              ToolCard(
+                icon: Icons.account_balance,
+                title: "EMI Calculator",
+                subtitle: "Plan your loan repayments",
 
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const EmiScreen(),
-                  ),
-                );
-              }
-            ),
-          ],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const EmiScreen(),
+                    ),
+                  );
+                }
+              ),
+            ],
+          ),
         ),
       ),
     );

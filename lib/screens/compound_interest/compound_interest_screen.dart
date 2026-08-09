@@ -6,6 +6,8 @@ import '../../widgets/result_card.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../widgets/growth_chart_card.dart';
 import '../../widgets/investment_breakdown_card.dart';
+import '../../widgets/gradient_background.dart';
+import '../../utils/currency_formatter.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -76,6 +78,7 @@ void calculateCompoundInterest() {
   });
 }
 
+//Clears input and returns the calculator to its initial state 
 void resetCalculator() {
   principalController.clear();
   rateController.clear();
@@ -113,187 +116,189 @@ void showError(String message) {
       appBar: AppBar(
         title: const Text("Compound Interest"),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Compound Interest Calculator",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+      body: GradientBackground(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Compound Interest Calculator",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
 
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-            const Text(
-              "Calculate how your investments grow over time.",
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
+              const Text(
+                "Calculate how your investments grow over time.",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
               ),
-            ),
 
-          // Principal Amount Field
-            const SizedBox(height: 30),
+            // Principal Amount Field
+              const SizedBox(height: 30),
 
-            AppTextField(
-              controller: principalController,
-              label: "Principal Amount",
-              icon: Icons.account_balance_wallet,
-              keyboardType: TextInputType.number,
-            ),  
+              AppTextField(
+                controller: principalController,
+                label: "Principal Amount",
+                icon: Icons.account_balance_wallet,
+                keyboardType: TextInputType.number,
+              ),  
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Interest Rate Field
-            AppTextField(
-              controller: rateController,
-              label: "Annual Interest Rate (%)",
-              icon: Icons.percent,
-              keyboardType: TextInputType.number,
-            ),
-
-            const SizedBox(height: 20),
-
-            // Time Field
-            AppTextField(
-              controller: timeController,
-              label: "Time (Years)",
-              icon: Icons.calendar_today,
-              keyboardType: TextInputType.number,
-            ),
-
-            const SizedBox(height: 16),
-
-            DropdownButtonFormField<int>(
-              initialValue: frequency,
-              decoration: InputDecoration(
-                labelText: "Compounding Frequency",
-                prefixIcon: const Icon(Icons.repeat),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
-                ),
-                filled: true,
+              // Interest Rate Field
+              AppTextField(
+                controller: rateController,
+                label: "Annual Interest Rate (%)",
+                icon: Icons.percent,
+                keyboardType: TextInputType.number,
               ),
-              items: const [
-                DropdownMenuItem(
-                  value: 1,
-                  child: Text("Annually"),
+
+              const SizedBox(height: 20),
+
+              // Time Field
+              AppTextField(
+                controller: timeController,
+                label: "Time (Years)",
+                icon: Icons.calendar_today,
+                keyboardType: TextInputType.number,
+              ),
+
+              const SizedBox(height: 16),
+
+              DropdownButtonFormField<int>(
+                initialValue: frequency,
+                decoration: InputDecoration(
+                  labelText: "Compounding Frequency",
+                  prefixIcon: const Icon(Icons.repeat),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+                  ),
+                  filled: true,
                 ),
+                items: const [
                   DropdownMenuItem(
-                  value: 2,
-                  child: Text("Semi-Annually"),
-                ),
-                  DropdownMenuItem(
-                  value: 4,
-                  child: Text("Quarterly"),
-                ),
-                  DropdownMenuItem(
-                  value: 12,
-                  child: Text("Monthly"),
-                ),
-                  DropdownMenuItem(
-                  value: 365,
-                  child: Text("Daily"),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  frequency = value ?? 1;
-                });
-              },
-            ),
+                    value: 1,
+                    child: Text("Annually"),
+                  ),
+                    DropdownMenuItem(
+                    value: 2,
+                    child: Text("Semi-Annually"),
+                  ),
+                    DropdownMenuItem(
+                    value: 4,
+                    child: Text("Quarterly"),
+                  ),
+                    DropdownMenuItem(
+                    value: 12,
+                    child: Text("Monthly"),
+                  ),
+                    DropdownMenuItem(
+                    value: 365,
+                    child: Text("Daily"),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    frequency = value ?? 1;
+                  });
+                },
+              ),
 
-            const SizedBox(height: 24),
-
-            PrimaryButton(
-              text: "Calculate",
-              icon: Icons.calculate,
-              onPressed: calculateCompoundInterest,
-            ),
-
-            const SizedBox(height: 12),
-
-            OutlinedButton.icon(
-              onPressed: resetCalculator,
-              icon: const Icon(Icons.refresh),
-              label: const Text("Reset Calculator"),
-            ),
-
-            const SizedBox(height: 30),
-
-            ResultCard(
-              title: "Future Value",
-              value: "₹${futureValue.toStringAsFixed(2)}",
-              subtitle: "Total amount after your selected period",
-            ),
-
-            if (growthData.isNotEmpty) ...[
               const SizedBox(height: 24),
 
-              InvestmentBreakdownCard(
-                investedAmount: investedAmount,
-                interestEarned: futureValue - investedAmount
+              PrimaryButton(
+                text: "Calculate",
+                icon: Icons.calculate,
+                onPressed: calculateCompoundInterest,
               ),
-              
-              const SizedBox(height: 24),
 
-              GrowthChartCard(
-                title: "Investment Growth",
-                chart: LineChart(
-                  LineChartData(
-                    gridData: const FlGridData(show: true),
-                    borderData: FlBorderData(show: false),
-                    titlesData: FlTitlesData(
-                      topTitles: const AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),  
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true, interval: 1,
-                          getTitlesWidget: (value, meta) {
-                            return Text("Year ${value.toInt()}",
-                            style: const TextStyle(fontSize: 10),
-                            );
-                          },
-                        ),
-                      ),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 50,
-                          getTitlesWidget: (value, meta) {
-                            return Text( "₹${value.toInt()}",
-                            style: const TextStyle(fontSize: 10),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
+              const SizedBox(height: 12),
 
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: List.generate(
-                          growthData.length, (index) => FlSpot(
-                            index.toDouble(), growthData[index],
+              OutlinedButton.icon(
+                onPressed: resetCalculator,
+                icon: const Icon(Icons.refresh),
+                label: const Text("Reset Calculator"),
+              ),
+
+              const SizedBox(height: 30),
+
+              ResultCard(
+                title: "Future Value",
+                value: CurrencyFormatter.format(futureValue),
+                subtitle: "Total amount after your selected period",
+              ),
+
+              if (growthData.isNotEmpty) ...[
+                const SizedBox(height: 24),
+
+                InvestmentBreakdownCard(
+                  investedAmount: investedAmount,
+                  interestEarned: futureValue - investedAmount
+                ),
+                
+                const SizedBox(height: 24),
+
+                GrowthChartCard(
+                  title: "Investment Growth",
+                  chart: LineChart(
+                    LineChartData(
+                      gridData: const FlGridData(show: true),
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),  
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true, interval: 1,
+                            getTitlesWidget: (value, meta) {
+                              return Text("Year ${value.toInt()}",
+                              style: const TextStyle(fontSize: 10),
+                              );
+                            },
                           ),
                         ),
-                        isCurved: true,
-                        color: Colors.indigo,
-                        barWidth: 4, 
-                        dotData: const FlDotData(show: true),
-                        belowBarData: BarAreaData(show: true,
-                        color: Colors.indigo.withValues(alpha: 0.12),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 50,
+                            getTitlesWidget: (value, meta) {
+                              return Text( "₹${value.toInt()}",
+                              style: const TextStyle(fontSize: 10),
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    ],
+
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: List.generate(
+                            growthData.length, (index) => FlSpot(
+                              index.toDouble(), growthData[index],
+                            ),
+                          ),
+                          isCurved: true,
+                          color: Colors.indigo,
+                          barWidth: 4, 
+                          dotData: const FlDotData(show: true),
+                          belowBarData: BarAreaData(show: true,
+                          color: Colors.indigo.withValues(alpha: 0.12),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     ); 
