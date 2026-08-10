@@ -7,7 +7,6 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../widgets/growth_chart_card.dart';
 import '../../widgets/investment_breakdown_card.dart';
 import '../../widgets/gradient_background.dart';
-import '../../utils/currency_formatter.dart';
 import '../../animations/animated_entry.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
@@ -256,7 +255,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
               ResultCard(
                 title: "Future Value",
-                value: CurrencyFormatter.format(futureValue),
+                value: futureValue,
                 subtitle: "Total amount after your selected period",
               ),
 

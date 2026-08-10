@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../animations/animated_number.dart';
 
 class ResultCard extends StatelessWidget {
   final String title;
-  final String value;
+  final double value;
   final String? subtitle;
 
   const ResultCard({
@@ -34,9 +35,10 @@ class ResultCard extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            Text(
-              value, style: const TextStyle(
-                fontSize: 28,
+            AnimatedNumber(
+              value: value,
+              style: const TextStyle(
+                fontSize: 34,
                 fontWeight: FontWeight.bold,
               ),
             ),
