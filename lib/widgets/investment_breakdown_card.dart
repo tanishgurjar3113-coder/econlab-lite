@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/currency_formatter.dart';
+import '../animations/animated_number.dart';
 
 class InvestmentBreakdownCard extends StatelessWidget{
   final double investedAmount;
@@ -38,7 +38,7 @@ class InvestmentBreakdownCard extends StatelessWidget{
                   child: _BreakdownItem(
                     icon: Icons.account_balance_wallet_outlined,
                     label: "Invested",
-                    value: CurrencyFormatter.format(investedAmount),
+                    value: investedAmount,
                     color: Colors.indigo, 
                   ),
                 ),
@@ -49,7 +49,7 @@ class InvestmentBreakdownCard extends StatelessWidget{
                   child: _BreakdownItem(
                     icon: Icons.trending_up,
                     label: "Interest Earned",
-                    value: CurrencyFormatter.format(interestEarned),
+                    value: interestEarned,
                     color: Colors.green,
                   ),
                 ),
@@ -65,7 +65,7 @@ class InvestmentBreakdownCard extends StatelessWidget{
 class _BreakdownItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String value;
+  final double value;
   final Color color;
 
   const _BreakdownItem({
@@ -93,7 +93,8 @@ class _BreakdownItem extends StatelessWidget {
 
         const SizedBox(height: 4),
 
-        Text(value, style: const TextStyle(
+        AnimatedNumber(
+          value: value, style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
         ),

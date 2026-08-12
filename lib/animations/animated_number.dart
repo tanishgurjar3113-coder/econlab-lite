@@ -4,8 +4,11 @@ import '../utils/currency_formatter.dart';
 class AnimatedNumber extends StatefulWidget {
   final double value;
   final TextStyle? style;
+  final int animationTrigger;
 
-  const AnimatedNumber({super.key, required this.value, this.style});
+  const AnimatedNumber({super.key, 
+  required this.value, 
+  this.style, this.animationTrigger = 0});
 
   @override
   State<AnimatedNumber> createState() => _AnimatedNumberState();
@@ -44,6 +47,10 @@ class _AnimatedNumberState extends State<AnimatedNumber>
       ),
     );
 
+    _createHoverAnimation();
+  }
+
+  void _createHoverAnimation() {
     _hoverAnimation = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween<double>(
@@ -81,6 +88,22 @@ class _AnimatedNumberState extends State<AnimatedNumber>
     ]).animate(_controller);
   }
 
+  void _replayAnimation() {
+    _controller.reset();
+
+    _numberAnimation = Tween<double>(
+      begin: 0.0,
+      end: widget.value,
+    ).animate(
+      CurvedAnimation(parent: _controller, 
+      curve: Curves.easeOutQuart,)
+    );
+
+    _createHoverAnimation();
+
+    _controller.forward();
+  }
+
   @override
   void didUpdateWidget(covariant AnimatedNumber oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -93,6 +116,12 @@ class _AnimatedNumberState extends State<AnimatedNumber>
       _createAnimations();
 
       _controller.forward();
+
+      return;
+    }
+
+    if (oldWidget.value != widget.value) {
+      _replayAnimation();
     }
   }
 

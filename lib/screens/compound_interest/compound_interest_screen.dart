@@ -21,6 +21,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   final TextEditingController principalController = TextEditingController();
   final TextEditingController rateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _breakdownKey = GlobalKey();
+
+  bool _breakdownVisible = false;
 
   double futureValue = 0.0;
 
@@ -43,10 +47,47 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     principalController.addListener(_onInputChanged);
     rateController.addListener(_onInputChanged);
     timeController.addListener(_onInputChanged);
+    _scrollController.addListener(_onScroll);
   }
 
   void _onInputChanged() {
     setState(() {});
+  }
+
+  void _onScroll() {
+    if (_breakdownVisible || !_scrollController.hasClients
+    || growthData.isEmpty) {
+      return;
+    }
+  
+    final context = _breakdownKey.currentContext;
+
+    if (context == null) {
+      return;
+    }
+
+    final renderObject = context.findRenderObject();
+
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
+
+    final position = renderObject.localToGlobal(Offset.zero);
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final cardHeight = renderObject.size.height;
+
+    final visibleHeight = (screenHeight - position.dy)
+        .clamp(0.0, cardHeight);
+
+    final visiblePercentage = visibleHeight / cardHeight;
+
+    final isVisible = visiblePercentage >= 0.8;
+
+    if (isVisible) {
+      setState(() {
+        _breakdownVisible = true;
+      });
+    }
   }
 
   void calculateCompoundInterest() {
@@ -88,6 +129,12 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       growthData = yearlyGrowth;
       investedAmount = principal;
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _onScroll();
+      }
+    });
   }
 
   //Clears input and returns the calculator to its initial state
@@ -101,6 +148,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       growthData = [];
       investedAmount = 0.0;
       frequency = 1;
+      _breakdownVisible = false;
     });
 
     FocusScope.of(context).unfocus();
@@ -117,7 +165,9 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     principalController.removeListener(_onInputChanged);
     rateController.removeListener(_onInputChanged);
     timeController.removeListener(_onInputChanged);
+    _scrollController.removeListener(_onScroll);
 
+    _scrollController.dispose();
     principalController.dispose();
     rateController.dispose();
     timeController.dispose();
@@ -130,6 +180,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       appBar: AppBar(title: const Text("Compound Interest")),
       body: GradientBackground(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,9 +313,18 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
               if (growthData.isNotEmpty) ...[
                 const SizedBox(height: 24),
 
-                InvestmentBreakdownCard(
-                  investedAmount: investedAmount,
-                  interestEarned: futureValue - investedAmount,
+                Container(
+                  key: _breakdownKey,
+                  child: _breakdownVisible
+                    ? AnimatedEntry(
+                      delay: Duration.zero,
+                      duration: const Duration(milliseconds: 850),
+                      child: InvestmentBreakdownCard(
+                        investedAmount: investedAmount,
+                        interestEarned: futureValue - investedAmount,
+                      )
+                    )
+                  :const SizedBox(height: 135,),
                 ),
 
                 const SizedBox(height: 24),
