@@ -16,7 +16,8 @@ class CompoundInterestScreen extends StatefulWidget {
   State<CompoundInterestScreen> createState() => _CompoundInterestScreenState();
 }
 
-class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
+class _CompoundInterestScreenState extends State<CompoundInterestScreen> 
+  with SingleTickerProviderStateMixin{
   //Controllers
   final TextEditingController principalController = TextEditingController();
   final TextEditingController rateController = TextEditingController();
@@ -25,6 +26,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   final GlobalKey _breakdownKey = GlobalKey();
 
   bool _breakdownVisible = false;
+
+  final GlobalKey _chartKey = GlobalKey();
+  bool _chartVisible = false;
+  late final AnimationController _chartController;
 
   double futureValue = 0.0;
 
@@ -48,6 +53,9 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     rateController.addListener(_onInputChanged);
     timeController.addListener(_onInputChanged);
     _scrollController.addListener(_onScroll);
+    _chartController = AnimationController(vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    );
   }
 
   void _onInputChanged() {
@@ -55,71 +63,105 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   }
 
   void _onScroll() {
-    if (_breakdownVisible || !_scrollController.hasClients
-    || growthData.isEmpty) {
-      return;
-    }
-  
-    final context = _breakdownKey.currentContext;
-
-    if (context == null) {
+    if (!_scrollController.hasClients) {
       return;
     }
 
-    final renderObject = context.findRenderObject();
+    //Investment Breakdown Card
+    if (!_breakdownVisible && growthData.isNotEmpty) {
+      final breakdownContext = _breakdownKey.currentContext;
 
-    if (renderObject is! RenderBox || !renderObject.hasSize) {
-      return;
+      if (breakdownContext != null) {
+        final renderObject = breakdownContext.findRenderObject();
+
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          final position = renderObject.localToGlobal(Offset.zero);
+
+          final screenHeight = MediaQuery.sizeOf(breakdownContext).height;
+          final cardHeight = renderObject.size.height;
+          final visibleHeight = (screenHeight - position.dy)
+                .clamp(0.0, cardHeight);
+
+          final visiblePercentage = visibleHeight / cardHeight;
+          if (visiblePercentage >= 0.8) {
+            setState(() {
+              _breakdownVisible = true;
+            });
+          }
+        }
+      }
     }
 
-    final position = renderObject.localToGlobal(Offset.zero);
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final cardHeight = renderObject.size.height;
+    //Growth Chart Card
+    if (!_chartVisible && growthData.isNotEmpty){
+      final chartContext = _chartKey.currentContext;
 
-    final visibleHeight = (screenHeight - position.dy)
-        .clamp(0.0, cardHeight);
+      if (chartContext != null) {
+        final renderObject = chartContext.findRenderObject();
 
-    final visiblePercentage = visibleHeight / cardHeight;
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          final position = renderObject.localToGlobal(Offset.zero);
+          final screenHeight = MediaQuery.sizeOf(chartContext).height;
 
-    final isVisible = visiblePercentage >= 0.8;
+          final cardHeight = renderObject.size.height;
+          final visibleHeight = (screenHeight - position.dy);
 
-    if (isVisible) {
-      setState(() {
-        _breakdownVisible = true;
-      });
+          final visiblePercentage = visibleHeight / cardHeight;
+          if (visiblePercentage >= 0.8) {
+            setState(() {
+              _chartVisible = true;
+            });
+          }
+        }  
+      }
     }
   }
 
-  void calculateCompoundInterest() {
-    final double? principal = double.tryParse(principalController.text);
+    void calculateCompoundInterest() {
+    final double? principal =
+        double.tryParse(principalController.text);
 
-    final double? rate = double.tryParse(rateController.text);
+    final double? rate =
+        double.tryParse(rateController.text);
 
-    final double? time = double.tryParse(timeController.text);
+    final double? time =
+        double.tryParse(timeController.text);
 
     if (principal == null || principal <= 0) {
-      showError("Please enter a valid principal amount.");
+      showError(
+        "Please enter a valid principal amount.",
+      );
       return;
     }
 
     if (rate == null || rate < 0) {
-      showError("Please enter a valid interest rate");
+      showError(
+        "Please enter a valid interest rate",
+      );
       return;
     }
 
     if (time == null || time <= 0) {
-      showError("Please enter a valid time period");
+      showError(
+        "Please enter a valid time period",
+      );
       return;
     }
 
-    final double result =
-        principal * pow(1 + (rate / 100) / frequency, frequency * time);
+    final double result = principal *
+        pow(
+          1 + (rate / 100) / frequency,
+          frequency * time,
+        );
 
     final List<double> yearlyGrowth = [];
 
     for (int year = 0; year <= time; year++) {
-      final double amount =
-          principal * pow(1 + (rate / 100) / frequency, frequency * year);
+      final double amount = principal *
+          pow(
+            1 + (rate / 100) / frequency,
+            frequency * year,
+          );
 
       yearlyGrowth.add(amount);
     }
@@ -128,13 +170,57 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       futureValue = result;
       growthData = yearlyGrowth;
       investedAmount = principal;
+
+      _breakdownVisible = false;
+      _chartVisible = false;
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _onScroll();
-      }
-    });
+    _chartController.reset();
+  }
+
+  List<FlSpot> _animatedGrowthSpots() {
+    if (growthData.isEmpty) {
+      return[];
+    }
+
+    final double progress = Curves.easeOutCubic.transform(
+      _chartController.value,
+    );
+
+    if (progress <= 0) {
+      return [FlSpot(0, growthData.first),];
+    }
+
+    final double maxIndex = progress * (growthData.length - 1);
+
+    final int completedIndex = maxIndex.floor();
+    final List<FlSpot> spots = <FlSpot>[];
+
+    for (int i = 0; i <= completedIndex; i++) {
+      spots.add(
+        FlSpot(i.toDouble(),
+        growthData[i],
+        ),
+      );
+    }
+
+    if (completedIndex < growthData.length - 1) {
+      final int nextIndex = completedIndex + 1;
+
+      final double localProgress = maxIndex - completedIndex;
+      final double currentValue = growthData[completedIndex];
+
+      final double nextValue = growthData[nextIndex];
+      final double interpolatedValue = currentValue +
+        (nextValue - currentValue) * localProgress;
+
+        spots.add(FlSpot(
+          completedIndex + localProgress, interpolatedValue,
+        ),
+      );
+    }
+
+    return spots;
   }
 
   //Clears input and returns the calculator to its initial state
@@ -149,7 +235,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       investedAmount = 0.0;
       frequency = 1;
       _breakdownVisible = false;
+      _chartVisible = false;
     });
+
+    _chartController.reset();
 
     FocusScope.of(context).unfocus();
   }
@@ -168,6 +257,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     _scrollController.removeListener(_onScroll);
 
     _scrollController.dispose();
+    _chartController.dispose();
     principalController.dispose();
     rateController.dispose();
     timeController.dispose();
@@ -329,61 +419,66 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
                 const SizedBox(height: 24),
 
-                GrowthChartCard(
-                  title: "Investment Growth",
-                  chart: LineChart(
-                    LineChartData(
-                      gridData: const FlGridData(show: true),
-                      borderData: FlBorderData(show: false),
-                      titlesData: FlTitlesData(
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            interval: 1,
-                            getTitlesWidget: (value, meta) {
-                              return Text(
-                                "Year ${value.toInt()}",
-                                style: const TextStyle(fontSize: 10),
-                              );
-                            },
-                          ),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 50,
-                            getTitlesWidget: (value, meta) {
-                              return Text(
-                                "₹${value.toInt()}",
-                                style: const TextStyle(fontSize: 10),
-                              );
-                            },
+                AnimatedBuilder(
+                  animation: _chartController,
+                  builder: (context, child) {
+                    return Container(
+                      key: _chartKey,
+                      child: GrowthChartCard(
+                        title: "Investment Growth",
+                        chart: LineChart(
+                          LineChartData(
+                            gridData: const FlGridData(show: true),
+                            borderData: FlBorderData(show: false),
+                            titlesData: FlTitlesData(
+                              topTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  interval: 1,
+                                  getTitlesWidget: (value, meta) {
+                                    return Text(
+                                      "Year ${value.toInt()}",
+                                      style: const TextStyle(fontSize: 10),
+                                    );
+                                  },
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 50,
+                                  getTitlesWidget: (value, meta) {
+                                    return Text(
+                                      "₹${value.toInt()}",
+                                      style: const TextStyle(fontSize: 10),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: _animatedGrowthSpots(),
+                                isCurved: true,
+                                color: Colors.indigo,
+                                barWidth: 4,
+                                dotData: const FlDotData(show: true),
+                                belowBarData: BarAreaData(
+                                  show: true,
+                                  color: Colors.indigo.withValues(alpha: 0.12,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: List.generate(
-                            growthData.length,
-                            (index) =>
-                                FlSpot(index.toDouble(), growthData[index]),
-                          ),
-                          isCurved: true,
-                          color: Colors.indigo,
-                          barWidth: 4,
-                          dotData: const FlDotData(show: true),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: Colors.indigo.withValues(alpha: 0.12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ],
             ],
