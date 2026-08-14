@@ -8,6 +8,8 @@ import '../../widgets/growth_chart_card.dart';
 import '../../widgets/investment_breakdown_card.dart';
 import '../../widgets/gradient_background.dart';
 import '../../animations/animated_entry.dart';
+import '../../widgets/investment_insight_card.dart';
+import '../../widgets/compound_interest_info_card.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -426,6 +428,14 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                 subtitle: "Total amount after your selected period",
               ),
 
+              const SizedBox(height: 16),
+
+              if (growthData.isNotEmpty)
+                InvestmentInsightCard(
+                  investedAmount: investedAmount,
+                  futureValue: futureValue,
+                ),
+
               if (growthData.isNotEmpty) ...[
                 const SizedBox(height: 24),
 
@@ -442,6 +452,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                     )
                   :const SizedBox(height: 135,),
                 ),
+
+                const SizedBox(height: 16),
+
+                const CompoundInterestInfoCard(),
 
                 const SizedBox(height: 24),
 
