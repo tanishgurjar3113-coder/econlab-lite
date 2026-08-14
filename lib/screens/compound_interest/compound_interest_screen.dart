@@ -16,8 +16,7 @@ class CompoundInterestScreen extends StatefulWidget {
   State<CompoundInterestScreen> createState() => _CompoundInterestScreenState();
 }
 
-class _CompoundInterestScreenState extends State<CompoundInterestScreen> 
-  with SingleTickerProviderStateMixin{
+class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   //Controllers
   final TextEditingController principalController = TextEditingController();
   final TextEditingController rateController = TextEditingController();
@@ -29,7 +28,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen>
 
   final GlobalKey _chartKey = GlobalKey();
   bool _chartVisible = false;
-  late final AnimationController _chartController;
 
   double futureValue = 0.0;
 
@@ -53,9 +51,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen>
     rateController.addListener(_onInputChanged);
     timeController.addListener(_onInputChanged);
     _scrollController.addListener(_onScroll);
-    _chartController = AnimationController(vsync: this,
-      duration: const Duration(milliseconds: 1600),
-    );
   }
 
   void _onInputChanged() {
@@ -104,7 +99,8 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen>
           final screenHeight = MediaQuery.sizeOf(chartContext).height;
 
           final cardHeight = renderObject.size.height;
-          final visibleHeight = (screenHeight - position.dy);
+          final visibleHeight = (screenHeight - position.dy)
+              .clamp(0.0, cardHeight);
 
           final visiblePercentage = visibleHeight / cardHeight;
           if (visiblePercentage >= 0.8) {
@@ -174,27 +170,29 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen>
       _breakdownVisible = false;
       _chartVisible = false;
     });
-
-    _chartController.reset();
   }
 
-  List<FlSpot> _animatedGrowthSpots() {
+  List<FlSpot> _animatedGrowthSpots(double progress) {
     if (growthData.isEmpty) {
       return[];
     }
-
-    final double progress = Curves.easeOutCubic.transform(
-      _chartController.value,
-    );
 
     if (progress <= 0) {
       return [FlSpot(0, growthData.first),];
     }
 
+    if (progress >= 1) {
+      return List.generate(
+        growthData.length, (index) => FlSpot(
+          index.toDouble(), growthData[index],
+        ),
+      );
+    }
+
     final double maxIndex = progress * (growthData.length - 1);
 
     final int completedIndex = maxIndex.floor();
-    final List<FlSpot> spots = <FlSpot>[];
+    final List<FlSpot> spots = [];
 
     for (int i = 0; i <= completedIndex; i++) {
       spots.add(
@@ -223,6 +221,36 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen>
     return spots;
   }
 
+  double _chartMinY() {
+    if (growthData.isEmpty) {
+      return 0;
+    }
+
+    final minValue = growthData.reduce(min);
+    final maxValue = growthData.reduce(max);
+
+    final range = maxValue - minValue;
+    final padding = range == 0
+      ? maxValue * 0.1: range * 0.08;
+
+    return max(0, minValue - padding);
+  }
+
+  double _chartMaxY() {
+    if (growthData.isEmpty) {
+      return 1;
+    }
+
+    final minValue = growthData.reduce(min);
+    final maxValue = growthData.reduce(max);
+
+    final range = maxValue - minValue;
+    final padding = range == 0
+      ? maxValue * 0.1: range * 0.08;
+
+    return maxValue + padding;
+  }
+
   //Clears input and returns the calculator to its initial state
   void resetCalculator() {
     principalController.clear();
@@ -238,7 +266,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen>
       _chartVisible = false;
     });
 
-    _chartController.reset();
 
     FocusScope.of(context).unfocus();
   }
@@ -257,7 +284,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen>
     _scrollController.removeListener(_onScroll);
 
     _scrollController.dispose();
-    _chartController.dispose();
     principalController.dispose();
     rateController.dispose();
     timeController.dispose();
@@ -419,15 +445,25 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen>
 
                 const SizedBox(height: 24),
 
-                AnimatedBuilder(
-                  animation: _chartController,
-                  builder: (context, child) {
+                TweenAnimationBuilder(
+                  tween: Tween<double>(
+                    begin: 0.0,
+                    end: _chartVisible ? 1.0:0.0,
+                  ),
+                  duration: const Duration(milliseconds: 1600),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, progress, child) {
                     return Container(
                       key: _chartKey,
                       child: GrowthChartCard(
                         title: "Investment Growth",
                         chart: LineChart(
                           LineChartData(
+                            minX: 0,
+                            maxX: (growthData.length - 1).toDouble(),
+                            minY: _chartMinY(),
+                            maxY: _chartMaxY(),
+
                             gridData: const FlGridData(show: true),
                             borderData: FlBorderData(show: false),
                             titlesData: FlTitlesData(
@@ -462,7 +498,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen>
 
                             lineBarsData: [
                               LineChartBarData(
-                                spots: _animatedGrowthSpots(),
+                                spots: _animatedGrowthSpots(progress),
                                 isCurved: true,
                                 color: Colors.indigo,
                                 barWidth: 4,
