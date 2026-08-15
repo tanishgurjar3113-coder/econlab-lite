@@ -30,10 +30,13 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   bool _breakdownVisible = false;
 
   final GlobalKey _comparisonKey = GlobalKey();
-  bool _comaparisonVisible = false;
+  bool _comparisonVisible = false;
 
   final GlobalKey _chartKey = GlobalKey();
   bool _chartVisible = false;
+
+  final GlobalKey _insightKey = GlobalKey();
+  bool _insightVisible = false;
 
   double futureValue = 0.0;
 
@@ -48,6 +51,42 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     return principalController.text.trim().isNotEmpty &&
         rateController.text.trim().isNotEmpty &&
         timeController.text.trim().isNotEmpty;
+  }
+
+  Widget _responsiveRow({
+    required BuildContext context,
+    required Widget left,
+    required Widget right,
+  }) {
+    final width = MediaQuery.sizeOf(context).width;
+
+    if (width < 800) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(width: double.infinity, child: left),
+
+          const SizedBox(height: 16),
+
+          SizedBox(width: double.infinity, child: right),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: SizedBox(width: double.infinity, child: left),
+        ),
+
+        const SizedBox(width: 16),
+
+        Expanded(
+          child: SizedBox(width: double.infinity, child: right),
+        ),
+      ],
+    );
   }
 
   @override
@@ -96,7 +135,34 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       }
     }
 
-    if (!_comaparisonVisible && growthData.isNotEmpty) {
+    if (!_insightVisible && growthData.isNotEmpty) {
+      final insightContext = _insightKey.currentContext;
+
+      if (insightContext != null) {
+        final renderObject = insightContext.findRenderObject();
+
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          final position = renderObject.localToGlobal(Offset.zero);
+
+          final screenHeight = MediaQuery.sizeOf(insightContext).height;
+          final cardHeight = renderObject.size.height;
+          final visibleHeight = (screenHeight - position.dy).clamp(
+            0.0,
+            cardHeight,
+          );
+
+          final visiblePercentage = visibleHeight / cardHeight;
+          if (visiblePercentage >= 0.8) {
+            setState(() {
+              _insightVisible = true;
+            });
+          }
+        }
+      }
+    }
+
+    //Compounding Frequency Comparison Card
+    if (!_comparisonVisible && growthData.isNotEmpty) {
       final comparisonContext = _comparisonKey.currentContext;
 
       if (comparisonContext != null) {
@@ -110,13 +176,14 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
           final cardHeight = renderObject.size.height;
 
           final visibleHeight = (screenHeight - position.dy).clamp(
-            0.0, cardHeight
+            0.0,
+            cardHeight,
           );
           final visiblePercentage = visibleHeight / cardHeight;
 
           if (visiblePercentage >= 0.3) {
             setState(() {
-              _comaparisonVisible = true;
+              _comparisonVisible = true;
             });
           }
         }
@@ -251,7 +318,8 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
       _breakdownVisible = false;
       _chartVisible = false;
-      _comaparisonVisible = false;
+      _comparisonVisible = false;
+      _insightVisible = false;
     });
   }
 
@@ -337,7 +405,8 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       frequency = 1;
       _breakdownVisible = false;
       _chartVisible = false;
-      _comaparisonVisible = false;
+      _comparisonVisible = false;
+      _insightVisible = false;
       compoundingComparison = {};
     });
 
@@ -494,51 +563,62 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
               const SizedBox(height: 30),
 
-              ResultCard(
-                title: "Future Value",
-                value: futureValue,
-                subtitle: "Total amount after your selected period",
-              ),
-
-              const SizedBox(height: 16),
-
-              if (growthData.isNotEmpty)
-                InvestmentInsightCard(
-                  investedAmount: investedAmount,
-                  futureValue: futureValue,
+              _responsiveRow(
+                context: context,
+                left: ResultCard(
+                  title: "Future Value",
+                  value: futureValue,
+                  subtitle: "Total amount after your selected period",
                 ),
+                right: Container(
+                  key: _insightKey,
+                  child: _insightVisible
+                      ? AnimatedEntry(
+                          delay: Duration.zero,
+                          duration: const Duration(milliseconds: 80),
+                          child: InvestmentInsightCard(
+                            investedAmount: investedAmount,
+                            futureValue: futureValue,
+                          ),
+                        )
+                      : const SizedBox(height: 135),
+                ),
+              ),
 
               if (growthData.isNotEmpty) ...[
                 const SizedBox(height: 24),
 
-                Container(
-                  key: _breakdownKey,
-                  child: _breakdownVisible
-                      ? AnimatedEntry(
-                          delay: Duration.zero,
-                          duration: const Duration(milliseconds: 850),
-                          child: InvestmentBreakdownCard(
-                            investedAmount: investedAmount,
-                            interestEarned: futureValue - investedAmount,
-                          ),
-                        )
-                      : const SizedBox(height: 135),
+                _responsiveRow(
+                  context: context,
+                  left: Container(
+                    key: _breakdownKey,
+                    child: _breakdownVisible
+                        ? AnimatedEntry(
+                            delay: Duration.zero,
+                            duration: const Duration(milliseconds: 850),
+                            child: InvestmentBreakdownCard(
+                              investedAmount: investedAmount,
+                              interestEarned: futureValue - investedAmount,
+                              time: double.tryParse(timeController.text) ?? 0,
+
+                              frequency: frequency,
+                            ),
+                          )
+                        : const SizedBox(height: 135),
+                  ),
+                  right: Container(
+                    key: _comparisonKey,
+                    child: CompoundingComparisonCard(
+                      comparison: compoundingComparison,
+                      selectedFrequency: frequency,
+                      animate: _comparisonVisible,
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 16),
 
                 const CompoundInterestInfoCard(),
-
-                const SizedBox(height: 16),
-
-                Container(
-                  key: _comparisonKey,
-                  child: CompoundingComparisonCard(
-                    comparison: compoundingComparison,
-                    selectedFrequency: frequency,
-                    animate: _comaparisonVisible,
-                  ),
-                ),
 
                 const SizedBox(height: 24),
 
