@@ -10,6 +10,7 @@ import '../../widgets/gradient_background.dart';
 import '../../animations/animated_entry.dart';
 import '../../widgets/investment_insight_card.dart';
 import '../../widgets/compound_interest_info_card.dart';
+import '../../widgets/compounding_comparison_card.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -24,9 +25,12 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   final TextEditingController rateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final GlobalKey _breakdownKey = GlobalKey();
 
+  final GlobalKey _breakdownKey = GlobalKey();
   bool _breakdownVisible = false;
+
+  final GlobalKey _comparisonKey = GlobalKey();
+  bool _comaparisonVisible = false;
 
   final GlobalKey _chartKey = GlobalKey();
   bool _chartVisible = false;
@@ -38,6 +42,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   int frequency = 1;
 
   double investedAmount = 0.0;
+  Map<String, double> compoundingComparison = {};
 
   bool get canCalculate {
     return principalController.text.trim().isNotEmpty &&
@@ -76,8 +81,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
           final screenHeight = MediaQuery.sizeOf(breakdownContext).height;
           final cardHeight = renderObject.size.height;
-          final visibleHeight = (screenHeight - position.dy)
-                .clamp(0.0, cardHeight);
+          final visibleHeight = (screenHeight - position.dy).clamp(
+            0.0,
+            cardHeight,
+          );
 
           final visiblePercentage = visibleHeight / cardHeight;
           if (visiblePercentage >= 0.8) {
@@ -89,8 +96,35 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       }
     }
 
+    if (!_comaparisonVisible && growthData.isNotEmpty) {
+      final comparisonContext = _comparisonKey.currentContext;
+
+      if (comparisonContext != null) {
+        final renderObject = comparisonContext.findRenderObject();
+
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          final position = renderObject.localToGlobal(Offset.zero);
+
+          final screenHeight = MediaQuery.sizeOf(comparisonContext).height;
+
+          final cardHeight = renderObject.size.height;
+
+          final visibleHeight = (screenHeight - position.dy).clamp(
+            0.0, cardHeight
+          );
+          final visiblePercentage = visibleHeight / cardHeight;
+
+          if (visiblePercentage >= 0.3) {
+            setState(() {
+              _comaparisonVisible = true;
+            });
+          }
+        }
+      }
+    }
+
     //Growth Chart Card
-    if (!_chartVisible && growthData.isNotEmpty){
+    if (!_chartVisible && growthData.isNotEmpty) {
       final chartContext = _chartKey.currentContext;
 
       if (chartContext != null) {
@@ -101,8 +135,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
           final screenHeight = MediaQuery.sizeOf(chartContext).height;
 
           final cardHeight = renderObject.size.height;
-          final visibleHeight = (screenHeight - position.dy)
-              .clamp(0.0, cardHeight);
+          final visibleHeight = (screenHeight - position.dy).clamp(
+            0.0,
+            cardHeight,
+          );
 
           final visiblePercentage = visibleHeight / cardHeight;
           if (visiblePercentage >= 0.8) {
@@ -110,56 +146,99 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
               _chartVisible = true;
             });
           }
-        }  
+        }
       }
     }
   }
 
-    void calculateCompoundInterest() {
-    final double? principal =
-        double.tryParse(principalController.text);
+  double _calculateFutureValue({
+    required double principal,
+    required double rate,
+    required double time,
+    required int frequency,
+  }) {
+    return principal * pow(1 + (rate / 100) / frequency, frequency * time);
+  }
 
-    final double? rate =
-        double.tryParse(rateController.text);
+  Map<String, double> _calculateCompoundingComparison({
+    required double principal,
+    required double rate,
+    required double time,
+  }) {
+    return {
+      "Annually": _calculateFutureValue(
+        principal: principal,
+        rate: rate,
+        time: time,
+        frequency: 1,
+      ),
+      "Semi-Annually": _calculateFutureValue(
+        principal: principal,
+        rate: rate,
+        time: time,
+        frequency: 2,
+      ),
+      "Quarterly": _calculateFutureValue(
+        principal: principal,
+        rate: rate,
+        time: time,
+        frequency: 4,
+      ),
+      "Monthly": _calculateFutureValue(
+        principal: principal,
+        rate: rate,
+        time: time,
+        frequency: 12,
+      ),
+      "Daily": _calculateFutureValue(
+        principal: principal,
+        rate: rate,
+        time: time,
+        frequency: 365,
+      ),
+    };
+  }
 
-    final double? time =
-        double.tryParse(timeController.text);
+  void calculateCompoundInterest() {
+    final double? principal = double.tryParse(principalController.text);
+
+    final double? rate = double.tryParse(rateController.text);
+
+    final double? time = double.tryParse(timeController.text);
 
     if (principal == null || principal <= 0) {
-      showError(
-        "Please enter a valid principal amount.",
-      );
+      showError("Please enter a valid principal amount.");
       return;
     }
 
     if (rate == null || rate < 0) {
-      showError(
-        "Please enter a valid interest rate",
-      );
+      showError("Please enter a valid interest rate");
       return;
     }
 
     if (time == null || time <= 0) {
-      showError(
-        "Please enter a valid time period",
-      );
+      showError("Please enter a valid time period");
       return;
     }
 
-    final double result = principal *
-        pow(
-          1 + (rate / 100) / frequency,
-          frequency * time,
-        );
+    final comparison = _calculateCompoundingComparison(
+      principal: principal,
+      rate: rate,
+      time: time,
+    );
+
+    final double result = _calculateFutureValue(
+      principal: principal,
+      rate: rate,
+      time: time,
+      frequency: frequency,
+    );
 
     final List<double> yearlyGrowth = [];
 
     for (int year = 0; year <= time; year++) {
-      final double amount = principal *
-          pow(
-            1 + (rate / 100) / frequency,
-            frequency * year,
-          );
+      final double amount =
+          principal * pow(1 + (rate / 100) / frequency, frequency * year);
 
       yearlyGrowth.add(amount);
     }
@@ -168,26 +247,27 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       futureValue = result;
       growthData = yearlyGrowth;
       investedAmount = principal;
+      compoundingComparison = comparison;
 
       _breakdownVisible = false;
       _chartVisible = false;
+      _comaparisonVisible = false;
     });
   }
 
   List<FlSpot> _animatedGrowthSpots(double progress) {
     if (growthData.isEmpty) {
-      return[];
+      return [];
     }
 
     if (progress <= 0) {
-      return [FlSpot(0, growthData.first),];
+      return [FlSpot(0, growthData.first)];
     }
 
     if (progress >= 1) {
       return List.generate(
-        growthData.length, (index) => FlSpot(
-          index.toDouble(), growthData[index],
-        ),
+        growthData.length,
+        (index) => FlSpot(index.toDouble(), growthData[index]),
       );
     }
 
@@ -197,11 +277,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     final List<FlSpot> spots = [];
 
     for (int i = 0; i <= completedIndex; i++) {
-      spots.add(
-        FlSpot(i.toDouble(),
-        growthData[i],
-        ),
-      );
+      spots.add(FlSpot(i.toDouble(), growthData[i]));
     }
 
     if (completedIndex < growthData.length - 1) {
@@ -211,13 +287,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       final double currentValue = growthData[completedIndex];
 
       final double nextValue = growthData[nextIndex];
-      final double interpolatedValue = currentValue +
-        (nextValue - currentValue) * localProgress;
+      final double interpolatedValue =
+          currentValue + (nextValue - currentValue) * localProgress;
 
-        spots.add(FlSpot(
-          completedIndex + localProgress, interpolatedValue,
-        ),
-      );
+      spots.add(FlSpot(completedIndex + localProgress, interpolatedValue));
     }
 
     return spots;
@@ -232,8 +305,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     final maxValue = growthData.reduce(max);
 
     final range = maxValue - minValue;
-    final padding = range == 0
-      ? maxValue * 0.1: range * 0.08;
+    final padding = range == 0 ? maxValue * 0.1 : range * 0.08;
 
     return max(0, minValue - padding);
   }
@@ -247,8 +319,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     final maxValue = growthData.reduce(max);
 
     final range = maxValue - minValue;
-    final padding = range == 0
-      ? maxValue * 0.1: range * 0.08;
+    final padding = range == 0 ? maxValue * 0.1 : range * 0.08;
 
     return maxValue + padding;
   }
@@ -266,8 +337,9 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       frequency = 1;
       _breakdownVisible = false;
       _chartVisible = false;
+      _comaparisonVisible = false;
+      compoundingComparison = {};
     });
-
 
     FocusScope.of(context).unfocus();
   }
@@ -442,27 +514,38 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                 Container(
                   key: _breakdownKey,
                   child: _breakdownVisible
-                    ? AnimatedEntry(
-                      delay: Duration.zero,
-                      duration: const Duration(milliseconds: 850),
-                      child: InvestmentBreakdownCard(
-                        investedAmount: investedAmount,
-                        interestEarned: futureValue - investedAmount,
-                      )
-                    )
-                  :const SizedBox(height: 135,),
+                      ? AnimatedEntry(
+                          delay: Duration.zero,
+                          duration: const Duration(milliseconds: 850),
+                          child: InvestmentBreakdownCard(
+                            investedAmount: investedAmount,
+                            interestEarned: futureValue - investedAmount,
+                          ),
+                        )
+                      : const SizedBox(height: 135),
                 ),
 
                 const SizedBox(height: 16),
 
                 const CompoundInterestInfoCard(),
 
+                const SizedBox(height: 16),
+
+                Container(
+                  key: _comparisonKey,
+                  child: CompoundingComparisonCard(
+                    comparison: compoundingComparison,
+                    selectedFrequency: frequency,
+                    animate: _comaparisonVisible,
+                  ),
+                ),
+
                 const SizedBox(height: 24),
 
                 TweenAnimationBuilder(
                   tween: Tween<double>(
                     begin: 0.0,
-                    end: _chartVisible ? 1.0:0.0,
+                    end: _chartVisible ? 1.0 : 0.0,
                   ),
                   duration: const Duration(milliseconds: 1600),
                   curve: Curves.easeOutCubic,
@@ -519,8 +602,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                                 dotData: const FlDotData(show: true),
                                 belowBarData: BarAreaData(
                                   show: true,
-                                  color: Colors.indigo.withValues(alpha: 0.12,
-                                  ),
+                                  color: Colors.indigo.withValues(alpha: 0.12),
                                 ),
                               ),
                             ],
