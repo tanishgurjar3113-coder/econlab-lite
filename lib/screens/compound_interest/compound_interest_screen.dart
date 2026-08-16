@@ -38,6 +38,12 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   final GlobalKey _insightKey = GlobalKey();
   bool _insightVisible = false;
 
+  final GlobalKey _infoKey = GlobalKey();
+  bool _infoVisible = false;
+
+  final GlobalKey _resultKey = GlobalKey();
+  bool _resultVisible = false;
+
   double futureValue = 0.0;
 
   List<double> growthData = [];
@@ -60,7 +66,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   }) {
     final width = MediaQuery.sizeOf(context).width;
 
-    if (width < 800) {
+    if (width < 1000) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -108,6 +114,35 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       return;
     }
 
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isWideScreen = screenWidth >= 1200;
+
+    if (isWideScreen && !_resultVisible && growthData.isNotEmpty) {
+      final resultContext = _resultKey.currentContext;
+
+      if (resultContext != null) {
+        final renderObject = resultContext.findRenderObject();
+
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          final position = renderObject.localToGlobal(Offset.zero);
+
+          final screenHeight = MediaQuery.sizeOf(resultContext).height;
+          final cardHeight = renderObject.size.height;
+          final visibleHeight = (screenHeight - position.dy).clamp(
+            0.0,
+            cardHeight,
+          );
+
+          final visiblePercentage = visibleHeight / cardHeight;
+          if (visiblePercentage >= 0.5) {
+            setState(() {
+              _resultVisible = true;
+            });
+          }
+        }
+      }
+    }
+
     //Investment Breakdown Card
     if (!_breakdownVisible && growthData.isNotEmpty) {
       final breakdownContext = _breakdownKey.currentContext;
@@ -126,7 +161,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
           );
 
           final visiblePercentage = visibleHeight / cardHeight;
-          if (visiblePercentage >= 0.8) {
+          if (visiblePercentage >= 0.5) {
             setState(() {
               _breakdownVisible = true;
             });
@@ -152,7 +187,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
           );
 
           final visiblePercentage = visibleHeight / cardHeight;
-          if (visiblePercentage >= 0.8) {
+          if (visiblePercentage >= 0.5) {
             setState(() {
               _insightVisible = true;
             });
@@ -181,9 +216,35 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
           );
           final visiblePercentage = visibleHeight / cardHeight;
 
-          if (visiblePercentage >= 0.3) {
+          if (visiblePercentage >= 0.5) {
             setState(() {
               _comparisonVisible = true;
+            });
+          }
+        }
+      }
+    }
+
+    if (!_infoVisible && growthData.isNotEmpty) {
+      final infoContext = _infoKey.currentContext;
+
+      if (infoContext != null) {
+        final renderObject = infoContext.findRenderObject();
+
+        if (renderObject is RenderBox && renderObject.hasSize) {
+          final position = renderObject.localToGlobal(Offset.zero);
+
+          final screenHeight = MediaQuery.sizeOf(infoContext).height;
+          final cardHeight = renderObject.size.height;
+          final visibleHeight = (screenHeight - position.dy).clamp(
+            0.0,
+            cardHeight,
+          );
+
+          final visiblePercentage = visibleHeight / cardHeight;
+          if (visiblePercentage >= 0.5) {
+            setState(() {
+              _infoVisible = true;
             });
           }
         }
@@ -208,7 +269,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
           );
 
           final visiblePercentage = visibleHeight / cardHeight;
-          if (visiblePercentage >= 0.8) {
+          if (visiblePercentage >= 0.5) {
             setState(() {
               _chartVisible = true;
             });
@@ -320,6 +381,8 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       _chartVisible = false;
       _comparisonVisible = false;
       _insightVisible = false;
+      _infoVisible = false;
+      _resultVisible = false;
     });
   }
 
@@ -407,6 +470,8 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       _chartVisible = false;
       _comparisonVisible = false;
       _insightVisible = false;
+      _infoVisible = false;
+      _resultVisible = false;
       compoundingComparison = {};
     });
 
@@ -435,6 +500,8 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.sizeOf(context).width >= 1200;
+    
     return Scaffold(
       appBar: AppBar(title: const Text("Compound Interest")),
       body: GradientBackground(
@@ -563,27 +630,62 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
               const SizedBox(height: 30),
 
-              _responsiveRow(
-                context: context,
-                left: ResultCard(
-                  title: "Future Value",
-                  value: futureValue,
-                  subtitle: "Total amount after your selected period",
-                ),
-                right: Container(
-                  key: _insightKey,
-                  child: _insightVisible
-                      ? AnimatedEntry(
+              if (isWideScreen) ...[
+                _responsiveRow(
+                  context: context,
+                  left: Container(
+                    key: _resultKey,
+                    child: _resultVisible ?
+                        AnimatedEntry(
                           delay: Duration.zero,
-                          duration: const Duration(milliseconds: 80),
+                          duration: const Duration(milliseconds: 850),
+                          child: ResultCard(
+                            title: "Fuure Value",
+                            value: futureValue,
+                            subtitle: "Total amount after your selected period",
+                          ),
+                        ): const SizedBox(height: 135,),
+                  ),
+                  right: Container(
+                    key: _insightKey,
+                    child: _insightVisible ?
+                        AnimatedEntry(
+                          delay: Duration.zero,
+                          duration: const Duration(milliseconds: 850,),
                           child: InvestmentInsightCard(
                             investedAmount: investedAmount,
                             futureValue: futureValue,
                           ),
-                        )
-                      : const SizedBox(height: 135),
+                        ): const SizedBox(height: 135,),
+                  ),
                 ),
-              ),
+              ] else ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: ResultCard(
+                    title: "Future Value",
+                    value: futureValue,
+                    subtitle: "Total amount after your selected period",
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                Container(
+                  key: _insightKey,
+                  child: _insightVisible ?
+                      AnimatedEntry(
+                        delay: Duration.zero,
+                        duration: const Duration(milliseconds: 850),
+                        child: InvestmentInsightCard(
+                        investedAmount: investedAmount,
+                        futureValue: futureValue,
+                        ),
+                      ): const SizedBox(height: 135,),
+                ),
+              ],
+
+              const SizedBox(height: 24),
 
               if (growthData.isNotEmpty) ...[
                 const SizedBox(height: 24),
@@ -608,17 +710,30 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                   ),
                   right: Container(
                     key: _comparisonKey,
-                    child: CompoundingComparisonCard(
-                      comparison: compoundingComparison,
-                      selectedFrequency: frequency,
-                      animate: _comparisonVisible,
-                    ),
+                    child: _comparisonVisible
+                      ? AnimatedEntry(
+                        delay: Duration.zero,
+                        duration: const Duration(milliseconds: 850,),
+                        child: CompoundingComparisonCard(
+                          comparison: compoundingComparison,
+                          selectedFrequency: frequency,
+                          animate: true,
+                        ),
+                      ): const SizedBox(height: 340,),
                   ),
                 ),
 
                 const SizedBox(height: 16),
 
-                const CompoundInterestInfoCard(),
+                Container(
+                  key: _infoKey,
+                  child: _infoVisible ? 
+                      AnimatedEntry(
+                        delay: Duration.zero,
+                        duration: const Duration(milliseconds: 850,),
+                        child: const CompoundInterestInfoCard(),
+                      ) : const SizedBox(height: 220,),
+                ),
 
                 const SizedBox(height: 24),
 
