@@ -1,3 +1,4 @@
+import 'package:econlab_lite/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/app_text_field.dart';
 import 'dart:math';
@@ -452,18 +453,43 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     return spots;
   }
 
+  int _chartYearInterval() {
+    final totalYears = growthData.length - 1;
+
+    if (totalYears <= 6) {
+      return 1;
+    }
+    if (totalYears <= 12) {
+      return 2;
+    }
+    if (totalYears <= 24) {
+      return 4;
+    }
+    if (totalYears <= 40) {
+      return 5;
+    }
+    if (totalYears <= 80) {
+      return 10;
+    }
+
+    return 20;
+  }
+
   double _chartMinY() {
     if (growthData.isEmpty) {
       return 0;
     }
 
-    final minValue = growthData.reduce(min);
-    final maxValue = growthData.reduce(max);
+    final minValue = investedAmount;
+    final maxValue = futureValue;
+
+    if (minValue == maxValue) {
+      return minValue - 1;
+    }
 
     final range = maxValue - minValue;
-    final padding = range == 0 ? maxValue * 0.1 : range * 0.08;
 
-    return max(0, minValue - padding);
+    return minValue - range * 0.08;
   }
 
   double _chartMaxY() {
@@ -471,13 +497,16 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       return 1;
     }
 
-    final minValue = growthData.reduce(min);
-    final maxValue = growthData.reduce(max);
+    final minValue = investedAmount;
+    final maxValue = futureValue;
+
+    if (minValue == maxValue) {
+      return maxValue + 1;
+    }
 
     final range = maxValue - minValue;
-    final padding = range == 0 ? maxValue * 0.1 : range * 0.08;
 
-    return maxValue + padding;
+    return maxValue + range * 0.08;
   }
 
   //Clears input and returns the calculator to its initial state
@@ -799,25 +828,80 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                         title: "Investment Growth",
                         chart: LineChart(
                           LineChartData(
-                            minX: 0,
-                            maxX: (growthData.length - 1).toDouble(),
+                            minX: -0.5,
+                            maxX: (growthData.length - 1).toDouble() + 5,
                             minY: _chartMinY(),
                             maxY: _chartMaxY(),
 
-                            gridData: const FlGridData(show: true),
-                            borderData: FlBorderData(show: false),
+                            gridData: const FlGridData(show: false),
+                            borderData: FlBorderData(
+                              show: true,
+                              border: Border(
+                                left: BorderSide(
+                                  color: Colors.black.withValues(alpha: 0.18),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            lineTouchData: LineTouchData(
+                              enabled: true,
+                              handleBuiltInTouches: true,
+                              touchTooltipData: LineTouchTooltipData(
+                                getTooltipItems: (touchedSpots) {
+                                  return touchedSpots.map((spot) {
+                                    return LineTooltipItem(
+                                      "Year ${spot.x.toInt()}\n"
+                                      "${CurrencyFormatter.format(spot.y)}",
+                                      const TextStyle(fontWeight: FontWeight.w600,),
+                                    );
+                                  }).toList();
+                                }
+                              )
+                            ),
+
+                            extraLinesData: ExtraLinesData(
+                              horizontalLines: [
+                                HorizontalLine(y: investedAmount,
+                                    strokeWidth: 1,
+                                    color: Colors.indigo.withValues(alpha: 0.18,),
+                                    dashArray: [6, 6],
+                                ),
+                              ],
+                            ),
                             titlesData: FlTitlesData(
                               topTitles: const AxisTitles(
                                 sideTitles: SideTitles(showTitles: false),
+                              ),
+                              rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false,
+                                  reservedSize: 0,
+                                ),
                               ),
                               bottomTitles: AxisTitles(
                                 sideTitles: SideTitles(
                                   showTitles: true,
                                   interval: 1,
+                                  reservedSize: 32,
                                   getTitlesWidget: (value, meta) {
-                                    return Text(
-                                      "Year ${value.toInt()}",
+                                    final year = value.toInt();
+                                    final totalYears = growthData.length - 1;
+                                    final interval = _chartYearInterval();
+
+                                    if (year < 0 || year > totalYears) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    if (year % interval != 0 && year != totalYears) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    return SideTitleWidget(
+                                      meta: meta, space: 6,
+                                      fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
+                                      child: Text(
+                                        "Year $year",
                                       style: const TextStyle(fontSize: 10),
+                                      ),
                                     );
                                   },
                                 ),
@@ -825,12 +909,41 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                               leftTitles: AxisTitles(
                                 sideTitles: SideTitles(
                                   showTitles: true,
-                                  reservedSize: 50,
+                                  reservedSize: 75,
+                                  interval: _chartMaxY() - _chartMinY(),
                                   getTitlesWidget: (value, meta) {
-                                    return Text(
-                                      "₹${value.toInt()}",
-                                      style: const TextStyle(fontSize: 10),
-                                    );
+                                    final minY = _chartMinY();
+                                    final maxY = _chartMaxY();
+
+                                    if ((value - minY).abs() < 0.01) {
+                                      return SideTitleWidget(
+                                        meta: meta, space: 6,
+                                        fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
+                                        child: Text(
+                                          CurrencyFormatter.format(investedAmount),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          )
+                                        ),
+                                      );
+                                    }
+
+                                    if ((value - maxY).abs() < 0.01) {
+                                      return SideTitleWidget(
+                                        meta: meta, space: 6,
+                                        fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
+                                        child: Text(
+                                          CurrencyFormatter.format(futureValue),
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          )
+                                        ),
+                                      );
+                                    }
+                                    
+                                    return const SizedBox.shrink();
                                   },
                                 ),
                               ),
@@ -841,11 +954,11 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                                 spots: _animatedGrowthSpots(progress),
                                 isCurved: true,
                                 color: Colors.indigo,
-                                barWidth: 4,
-                                dotData: const FlDotData(show: true),
+                                barWidth: 4.5,
+                                dotData: const FlDotData(show: false),
                                 belowBarData: BarAreaData(
                                   show: true,
-                                  color: Colors.indigo.withValues(alpha: 0.12),
+                                  color: Colors.indigo.withValues(alpha: 0.10),
                                 ),
                               ),
                             ],
