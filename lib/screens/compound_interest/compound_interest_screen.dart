@@ -42,15 +42,15 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   final GlobalKey _infoKey = GlobalKey();
   bool _infoVisible = false;
 
-  final GlobalKey _resultKey = GlobalKey();
   final GlobalKey _breakdownPairKey = GlobalKey();
-  bool _resultVisible = false;
   bool _resultPairVisible = false;
   bool _breakdownPairVisible = false;
 
   double futureValue = 0.0;
 
   List<double> growthData = [];
+
+  List<double> growthTimes = [];
 
   int frequency = 1;
 
@@ -120,32 +120,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isWideScreen = screenWidth >= 1200;
-
-    if (isWideScreen && !_resultVisible && growthData.isNotEmpty) {
-      final resultContext = _resultKey.currentContext;
-
-      if (resultContext != null) {
-        final renderObject = resultContext.findRenderObject();
-
-        if (renderObject is RenderBox && renderObject.hasSize) {
-          final position = renderObject.localToGlobal(Offset.zero);
-
-          final screenHeight = MediaQuery.sizeOf(resultContext).height;
-          final cardHeight = renderObject.size.height;
-          final visibleHeight = (screenHeight - position.dy).clamp(
-            0.0,
-            cardHeight,
-          );
-
-          final visiblePercentage = visibleHeight / cardHeight;
-          if (visiblePercentage >= 0.5) {
-            setState(() {
-              _resultVisible = true;
-            });
-          }
-        }
-      }
-    }
 
     // Investment Breakdown + Compounding Comparison
     if (isWideScreen && !_breakdownPairVisible && growthData.isNotEmpty) {
@@ -382,18 +356,39 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       frequency: frequency,
     );
 
-    final List<double> yearlyGrowth = [];
+    final List<double> calculatedGrowth = [];
+    final List<double> calculatedTimes = [];
+
+    final int fullYears = time.floor();
 
     for (int year = 0; year <= time; year++) {
-      final double amount =
-          principal * pow(1 + (rate / 100) / frequency, frequency * year);
+      final double amount = _calculateFutureValue(
+        principal: principal,
+        rate: rate,
+        time: year.toDouble(),
+        frequency: frequency,
+      );
 
-      yearlyGrowth.add(amount);
+      calculatedGrowth.add(amount);
+      calculatedTimes.add(year.toDouble());
+    }
+
+    if (time > fullYears) {
+      final double amount = _calculateFutureValue(
+        principal: principal,
+        rate: rate,
+        time: time,
+        frequency: frequency,
+      );
+
+      calculatedGrowth.add(amount);
+      calculatedTimes.add(time);
     }
 
     setState(() {
       futureValue = result;
-      growthData = yearlyGrowth;
+      growthData = calculatedGrowth;
+      growthTimes = calculatedTimes;
       investedAmount = principal;
       compoundingComparison = comparison;
 
@@ -403,7 +398,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       _comparisonVisible = false;
       _insightVisible = false;
       _infoVisible = false;
-      _resultVisible = false;
       _breakdownPairVisible = false;
     });
 
@@ -413,18 +407,18 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   }
 
   List<FlSpot> _animatedGrowthSpots(double progress) {
-    if (growthData.isEmpty) {
+    if (growthData.isEmpty || growthTimes.isEmpty) {
       return [];
     }
 
     if (progress <= 0) {
-      return [FlSpot(0, growthData.first)];
+      return [FlSpot(growthTimes.first, growthData.first)];
     }
 
     if (progress >= 1) {
       return List.generate(
         growthData.length,
-        (index) => FlSpot(index.toDouble(), growthData[index]),
+        (index) => FlSpot(growthTimes[index], growthData[index]),
       );
     }
 
@@ -434,20 +428,25 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     final List<FlSpot> spots = [];
 
     for (int i = 0; i <= completedIndex; i++) {
-      spots.add(FlSpot(i.toDouble(), growthData[i]));
+      spots.add(FlSpot(growthTimes[i], growthData[i]));
     }
 
     if (completedIndex < growthData.length - 1) {
       final int nextIndex = completedIndex + 1;
 
       final double localProgress = maxIndex - completedIndex;
-      final double currentValue = growthData[completedIndex];
+      final double currentTime = growthTimes[completedIndex];
+      final double nextTime = growthTimes[nextIndex];
 
+      final double currentValue = growthData[completedIndex];
       final double nextValue = growthData[nextIndex];
+
+      final double interpolatedTime =
+          currentTime + (nextTime - currentTime) * localProgress;
       final double interpolatedValue =
           currentValue + (nextValue - currentValue) * localProgress;
 
-      spots.add(FlSpot(completedIndex + localProgress, interpolatedValue));
+      spots.add(FlSpot(interpolatedTime, interpolatedValue));
     }
 
     return spots;
@@ -467,7 +466,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   }
 
   int _chartYearInterval() {
-    final totalYears = growthData.length - 1;
+    if (growthTimes.isEmpty) {
+      return 1;
+    }
+    final double totalYears = growthTimes.last;
 
     if (totalYears <= 6) {
       return 1;
@@ -486,6 +488,13 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     }
 
     return 20;
+  }
+
+  double _chartMaxX() {
+    if (growthTimes.isEmpty) {
+      return 1;
+    }
+    return growthTimes.last + _chartXPadding();
   }
 
   double _chartMinY() {
@@ -531,6 +540,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     setState(() {
       futureValue = 0.0;
       growthData = [];
+      growthTimes = [];
       investedAmount = 0.0;
       frequency = 1;
       _breakdownVisible = false;
@@ -538,7 +548,6 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
       _comparisonVisible = false;
       _insightVisible = false;
       _infoVisible = false;
-      _resultVisible = false;
       _resultPairVisible = false;
       _breakdownPairVisible = false;
       compoundingComparison = {};
@@ -852,7 +861,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                                 child: LineChart(
                                   LineChartData(
                                     minX: -_chartXPadding(),
-                                    maxX: (growthData.length - 1).toDouble() + _chartXPadding(),
+                                    maxX: _chartMaxX(),
                                     minY: _chartMinY(),
                                     maxY: _chartMaxY(),
 
@@ -906,7 +915,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                                           interval: 1,
                                           reservedSize: 32,
                                           getTitlesWidget: (value, meta) {
-                                            final totalYears = growthData.length - 1;
+                                            final double totalYears = growthTimes.last;
 
                                             if (value < 0) {
                                               return const SizedBox.shrink();

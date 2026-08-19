@@ -36,6 +36,13 @@ class InvestmentBreakdownCard extends StatelessWidget {
     }
   }
 
+  String get formattedTime {
+    if (time == time.truncateToDouble()) {
+      return "${time.toStringAsFixed(0)} Years";
+    }
+    return "${time.toStringAsFixed(1)} Years";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -93,12 +100,11 @@ class InvestmentBreakdownCard extends StatelessWidget {
                 const SizedBox(width: 16),
 
                 Expanded(
-                  child: _BreakdownItem(
+                  child: _PeriodBreakdownItem(
                     icon: Icons.schedule,
                     label: "Investment Period",
                     value: time,
                     color: Colors.orange,
-                    suffix: "Years",
                   ),
                 )
               ],
@@ -163,14 +169,12 @@ class _BreakdownItem extends StatelessWidget {
   final String label;
   final double value;
   final Color color;
-  final String? suffix;
 
   const _BreakdownItem({
     required this.icon,
     required this.label,
     required this.value,
     required this.color,
-    this.suffix,
   });
 
   @override
@@ -187,8 +191,7 @@ class _BreakdownItem extends StatelessWidget {
         const SizedBox(height: 4),
 
         Text(
-          suffix == null ? "₹${value.toStringAsFixed(2)}"
-              :  "${value.toStringAsFixed(0)} $suffix",
+          "₹${value.toStringAsFixed(2)}",
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -196,5 +199,49 @@ class _BreakdownItem extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _PeriodBreakdownItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final double value;
+  final Color color;
+
+  const _PeriodBreakdownItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final formattedValue = value == value.truncateToDouble()
+              ? value.toStringAsFixed(0): value.toStringAsFixed(1);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 22,),
+        
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            color: Colors.grey,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "$formattedValue Years",
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        )
+      ],
+    ); 
   }
 }
