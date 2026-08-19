@@ -453,6 +453,19 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     return spots;
   }
 
+  double _chartXPadding() {
+    final totalYears = growthData.length - 1;
+
+    if (totalYears <= 10) {
+      return 0.35;
+    }
+
+    if (totalYears <= 25) {
+      return 0.5;
+    }
+    return 0.75;
+  }
+
   int _chartYearInterval() {
     final totalYears = growthData.length - 1;
 
@@ -824,144 +837,178 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                   builder: (context, progress, child) {
                     return Container(
                       key: _chartKey,
-                      child: GrowthChartCard(
-                        title: "Investment Growth",
-                        chart: LineChart(
-                          LineChartData(
-                            minX: -0.5,
-                            maxX: (growthData.length - 1).toDouble() + 5,
-                            minY: _chartMinY(),
-                            maxY: _chartMaxY(),
-
-                            gridData: const FlGridData(show: false),
-                            borderData: FlBorderData(
-                              show: true,
-                              border: Border(
-                                left: BorderSide(
-                                  color: Colors.black.withValues(alpha: 0.18),
-                                  width: 1,
-                                ),
-                              ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: GrowthChartCard(
+                          title: "Investment Growth",
+                          chart: Padding(
+                            padding: const EdgeInsetsGeometry.symmetric(
+                              horizontal: 20,
                             ),
-                            lineTouchData: LineTouchData(
-                              enabled: true,
-                              handleBuiltInTouches: true,
-                              touchTooltipData: LineTouchTooltipData(
-                                getTooltipItems: (touchedSpots) {
-                                  return touchedSpots.map((spot) {
-                                    return LineTooltipItem(
-                                      "Year ${spot.x.toInt()}\n"
-                                      "${CurrencyFormatter.format(spot.y)}",
-                                      const TextStyle(fontWeight: FontWeight.w600,),
-                                    );
-                                  }).toList();
-                                }
-                              )
-                            ),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: AspectRatio(
+                                aspectRatio: 2.15,
+                                child: LineChart(
+                                  LineChartData(
+                                    minX: -_chartXPadding(),
+                                    maxX: (growthData.length - 1).toDouble() + _chartXPadding(),
+                                    minY: _chartMinY(),
+                                    maxY: _chartMaxY(),
 
-                            extraLinesData: ExtraLinesData(
-                              horizontalLines: [
-                                HorizontalLine(y: investedAmount,
-                                    strokeWidth: 1,
-                                    color: Colors.indigo.withValues(alpha: 0.18,),
-                                    dashArray: [6, 6],
-                                ),
-                              ],
-                            ),
-                            titlesData: FlTitlesData(
-                              topTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
-                              ),
-                              rightTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false,
-                                  reservedSize: 0,
-                                ),
-                              ),
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  interval: 1,
-                                  reservedSize: 32,
-                                  getTitlesWidget: (value, meta) {
-                                    final year = value.toInt();
-                                    final totalYears = growthData.length - 1;
-                                    final interval = _chartYearInterval();
-
-                                    if (year < 0 || year > totalYears) {
-                                      return const SizedBox.shrink();
-                                    }
-
-                                    if (year % interval != 0 && year != totalYears) {
-                                      return const SizedBox.shrink();
-                                    }
-
-                                    return SideTitleWidget(
-                                      meta: meta, space: 6,
-                                      fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
-                                      child: Text(
-                                        "Year $year",
-                                      style: const TextStyle(fontSize: 10),
+                                    gridData: const FlGridData(show: false),
+                                    borderData: FlBorderData(
+                                      show: true,
+                                      border: Border(
+                                        left: BorderSide(
+                                          color: Colors.black.withValues(alpha: 0.18),
+                                          width: 1,
+                                        ),
                                       ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  reservedSize: 75,
-                                  interval: _chartMaxY() - _chartMinY(),
-                                  getTitlesWidget: (value, meta) {
-                                    final minY = _chartMinY();
-                                    final maxY = _chartMaxY();
+                                    ),
+                                    lineTouchData: LineTouchData(
+                                      enabled: true,
+                                      handleBuiltInTouches: true,
+                                      touchTooltipData: LineTouchTooltipData(
+                                        getTooltipItems: (touchedSpots) {
+                                          return touchedSpots.map((spot) {
+                                            return LineTooltipItem(
+                                              "Year ${spot.x.toInt()}\n"
+                                              "${CurrencyFormatter.format(spot.y)}",
+                                              const TextStyle(fontWeight: FontWeight.w600,),
+                                            );
+                                          }).toList();
+                                        }
+                                      )
+                                    ),
 
-                                    if ((value - minY).abs() < 0.01) {
-                                      return SideTitleWidget(
-                                        meta: meta, space: 6,
-                                        fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
-                                        child: Text(
-                                          CurrencyFormatter.format(investedAmount),
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                          )
+                                    extraLinesData: ExtraLinesData(
+                                      horizontalLines: [
+                                        HorizontalLine(y: investedAmount,
+                                            strokeWidth: 1,
+                                            color: Colors.indigo.withValues(alpha: 0.18,),
+                                            dashArray: [6, 6],
                                         ),
-                                      );
-                                    }
+                                      ],
+                                    ),
+                                    titlesData: FlTitlesData(
+                                      topTitles: const AxisTitles(
+                                        sideTitles: SideTitles(showTitles: false),
+                                      ),
+                                      rightTitles: const AxisTitles(
+                                        sideTitles: SideTitles(showTitles: false,
+                                          reservedSize: 0,
+                                        ),
+                                      ),
+                                      bottomTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          interval: 1,
+                                          reservedSize: 32,
+                                          getTitlesWidget: (value, meta) {
+                                            final totalYears = growthData.length - 1;
 
-                                    if ((value - maxY).abs() < 0.01) {
-                                      return SideTitleWidget(
-                                        meta: meta, space: 6,
-                                        fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
-                                        child: Text(
-                                          CurrencyFormatter.format(futureValue),
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                          )
+                                            if (value < 0) {
+                                              return const SizedBox.shrink();
+                                            }
+
+                                            final year = value.round();
+                                            if ((value - year).abs() > 0.01) {
+                                              return const SizedBox.shrink();
+                                            }
+
+                                            if (year > totalYears) {
+                                              return const SizedBox.shrink();
+                                            }
+                                            final interval = _chartYearInterval();
+
+                                            final isRegularTick = year % interval == 0;
+
+                                            if (!isRegularTick && year != totalYears) {
+                                              return const SizedBox.shrink();
+                                            }
+
+                                            if (year == totalYears && !isRegularTick) {
+                                              final previousTick = (totalYears ~/ interval) * interval;
+                                              final gap = totalYears - previousTick;
+                                              final minimumGap = interval * 0.7;
+
+                                              if (gap < minimumGap) {
+                                                return const SizedBox.shrink();
+                                              }
+                                            }
+
+                                            return SideTitleWidget(
+                                              meta: meta, space: 6,
+                                              fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
+                                              child: Text(
+                                                "Year $year",
+                                              style: const TextStyle(fontSize: 10),
+                                              ),
+                                            );
+                                          },
                                         ),
-                                      );
-                                    }
-                                    
-                                    return const SizedBox.shrink();
-                                  },
+                                      ),
+                                      leftTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          reservedSize: 75,
+                                          interval: _chartMaxY() - _chartMinY(),
+                                          getTitlesWidget: (value, meta) {
+                                            final minY = _chartMinY();
+                                            final maxY = _chartMaxY();
+
+                                            if ((value - minY).abs() < 0.01) {
+                                              return SideTitleWidget(
+                                                meta: meta, space: 6,
+                                                fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
+                                                child: Text(
+                                                  CurrencyFormatter.format(investedAmount),
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  )
+                                                ),
+                                              );
+                                            }
+
+                                            if ((value - maxY).abs() < 0.01) {
+                                              return SideTitleWidget(
+                                                meta: meta, space: 6,
+                                                fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
+                                                child: Text(
+                                                  CurrencyFormatter.format(futureValue),
+                                                  style: const TextStyle(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  )
+                                                ),
+                                              );
+                                            }
+                                            
+                                            return const SizedBox.shrink();
+                                          },
+                                        ),
+                                      ),
+                                    ),
+
+                                    lineBarsData: [
+                                      LineChartBarData(
+                                        spots: _animatedGrowthSpots(progress),
+                                        isCurved: true,
+                                        color: Colors.indigo,
+                                        barWidth: 4.5,
+                                        dotData: const FlDotData(show: false),
+                                        belowBarData: BarAreaData(
+                                          show: true,
+                                          color: Colors.indigo.withValues(alpha: 0.10),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-
-                            lineBarsData: [
-                              LineChartBarData(
-                                spots: _animatedGrowthSpots(progress),
-                                isCurved: true,
-                                color: Colors.indigo,
-                                barWidth: 4.5,
-                                dotData: const FlDotData(show: false),
-                                belowBarData: BarAreaData(
-                                  show: true,
-                                  color: Colors.indigo.withValues(alpha: 0.10),
-                                ),
-                              ),
-                            ],
                           ),
                         ),
                       ),
