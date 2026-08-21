@@ -9,7 +9,7 @@ class EmiScreen extends StatefulWidget {
   const EmiScreen({super.key});
 
   @override
-  State<EmiScreen> createState() => _EmiScreenState(); 
+  State<EmiScreen> createState() => _EmiScreenState();
 }
 
 class _EmiScreenState extends State<EmiScreen> {
@@ -20,6 +20,7 @@ class _EmiScreenState extends State<EmiScreen> {
   double emi = 0.0;
   double totalInterest = 0.0;
   double totalPayment = 0.0;
+  double loanPrincipal = 0.0;
 
   bool calculated = false;
 
@@ -34,7 +35,7 @@ class _EmiScreenState extends State<EmiScreen> {
     required double annualRate,
     required double years,
   }) {
-    final monthlyRate = annualRate/100/12;
+    final monthlyRate = annualRate / 100 / 12;
     final totalMonths = (years * 12).round();
 
     if (totalMonths <= 0) {
@@ -88,6 +89,7 @@ class _EmiScreenState extends State<EmiScreen> {
       emi = monthlyEmi;
       totalPayment = payment;
       totalInterest = interest;
+      loanPrincipal = principal;
       calculated = true;
     });
   }
@@ -101,6 +103,7 @@ class _EmiScreenState extends State<EmiScreen> {
       emi = 0.0;
       totalPayment = 0.0;
       totalInterest = 0.0;
+      loanPrincipal = 0.0;
       calculated = false;
     });
 
@@ -108,9 +111,9 @@ class _EmiScreenState extends State<EmiScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message),),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -142,9 +145,7 @@ class _EmiScreenState extends State<EmiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("EMI Calculator"),
-      ),
+      appBar: AppBar(title: const Text("EMI Calculator")),
       body: GradientBackground(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -153,20 +154,16 @@ class _EmiScreenState extends State<EmiScreen> {
             children: [
               AnimatedEntry(
                 delay: const Duration(milliseconds: 100),
-                child: const Text("EMI Calculator",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: const Text(
+                  "EMI Calculator",
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 8),
 
-              const Text("Plan your loan repayments with clarity.",
-                style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                ),
+              const Text(
+                "Plan your loan repayments with clarity.",
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 30),
 
@@ -188,7 +185,7 @@ class _EmiScreenState extends State<EmiScreen> {
                   label: "Annual Interest Rate (%)",
                   icon: Icons.percent,
                   keyboardType: TextInputType.number,
-                ),         
+                ),
               ),
 
               const SizedBox(height: 20),
@@ -207,15 +204,14 @@ class _EmiScreenState extends State<EmiScreen> {
 
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
-                child: canCalculate ? 
-                  PrimaryButton(
-                    key: const ValueKey("Calculate"),
-                    text: "Calculate",
-                    icon: Icons.calculate,
-                    onPressed: calculateEmi,
-                  ): const SizedBox.shrink(
-                    key: ValueKey("empty"),
-                  ),
+                child: canCalculate
+                    ? PrimaryButton(
+                        key: const ValueKey("Calculate"),
+                        text: "Calculate",
+                        icon: Icons.calculate,
+                        onPressed: calculateEmi,
+                      )
+                    : const SizedBox.shrink(key: ValueKey("empty")),
               ),
 
               const SizedBox(height: 12),
@@ -239,14 +235,17 @@ class _EmiScreenState extends State<EmiScreen> {
                       elevation: 0,
                       margin: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadiusGeometry.circular(20),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Padding(
-                        padding: const EdgeInsetsGeometry.all(24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 20,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("Monthly EMI",
+                            const Text(
+                              "Monthly EMI",
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.grey,
@@ -263,12 +262,13 @@ class _EmiScreenState extends State<EmiScreen> {
                             ),
                             const SizedBox(height: 8),
 
-                            const Text("Your estimated monthly repayment",
+                            const Text(
+                              "Your estimated monthly repayment",
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
                               ),
-                            ),  
+                            ),
                           ],
                         ),
                       ),
@@ -277,13 +277,14 @@ class _EmiScreenState extends State<EmiScreen> {
                 ),
 
                 const SizedBox(height: 16),
-                
+
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final isWide = constraints.maxWidth >= 700;
 
                     if (!isWide) {
                       return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           SizedBox(
                             width: double.infinity,
@@ -298,40 +299,40 @@ class _EmiScreenState extends State<EmiScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
 
-                          AnimatedEntry(
-                            delay: Duration.zero,
-                            duration: const Duration(milliseconds: 850),
-                            child: _EmiMetricCard(
-                              label: "Total Payment",
-                              value: totalPayment,
-                              icon: Icons.payments_outlined,
-                            ),
-                          )
-                        ],
-                      );
-                    }
-                  
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: SizedBox(
+                          SizedBox(
                             width: double.infinity,
                             child: AnimatedEntry(
                               delay: Duration.zero,
                               duration: const Duration(milliseconds: 850),
                               child: _EmiMetricCard(
-                                label: "Total Interest",
-                                value: totalInterest,
-                                icon: Icons.trending_up,
+                                label: "Total Payment",
+                                value: totalPayment,
+                                icon: Icons.payments_outlined,
                               ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: AnimatedEntry(
+                            delay: Duration.zero,
+                            duration: const Duration(milliseconds: 850),
+                            child: _EmiMetricCard(
+                              label: "Total Interest",
+                              value: totalInterest,
+                              icon: Icons.trending_up,
                             ),
                           ),
                         ),
 
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
 
                         Expanded(
                           child: AnimatedEntry(
@@ -343,14 +344,119 @@ class _EmiScreenState extends State<EmiScreen> {
                               icon: Icons.payments_outlined,
                             ),
                           ),
-                        )
+                        ),
                       ],
                     );
-                  },
+                  }
                 ),
+
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: Card(
+                    elevation: 0,
+                    margin: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Repayment Composition",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          const Text(
+                            "See how your total payment is divided.",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: SizedBox(
+                              height: 18,
+                              width: double.infinity,
+                              child: LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final principalRatio = totalPayment > 0 ?
+                                    loanPrincipal/totalPayment: 0.0;
+
+                                  final interestRatio = totalPayment > 0 ?
+                                    totalInterest/totalPayment: 0.0;
+
+                                  return Row(
+                                    children: [
+                                      SizedBox(
+                                        width: constraints.maxWidth * principalRatio,
+                                        child: Container(color: Colors.indigo,),
+                                      ),
+                                      SizedBox(
+                                        width: constraints.maxWidth * interestRatio,
+                                        child: Container(color: Colors.orange,),
+                                      )
+                                    ],
+                                  );
+                                }
+                              )
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Principal",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                "₹${loanPrincipal.toStringAsFixed(2)}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Interest",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                "₹${totalInterest.toStringAsFixed(2)}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),       
+                        ],
+                      ),
+                    ),
+                  ),
+                ),  
               ],
             ],
-          )
+          ),
         ),
       ),
     );
@@ -375,11 +481,9 @@ class _EmiMetricCard extends StatelessWidget {
       child: Card(
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadiusGeometry.circular(20)
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
-          padding: const EdgeInsetsGeometry.all(20),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -389,10 +493,7 @@ class _EmiMetricCard extends StatelessWidget {
 
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 6),
 
