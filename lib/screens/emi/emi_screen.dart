@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../../animations/animated_entry.dart';
 import '../../widgets/app_text_field.dart';
@@ -21,6 +22,7 @@ class _EmiScreenState extends State<EmiScreen> {
   double totalInterest = 0.0;
   double totalPayment = 0.0;
   double loanPrincipal = 0.0;
+  List<double> repaymentData = [];
 
   bool calculated = false;
 
@@ -84,14 +86,48 @@ class _EmiScreenState extends State<EmiScreen> {
     final months = (years * 12).round();
     final payment = monthlyEmi * months;
     final interest = payment - principal;
+    final schedule = _calculateRepaymentSchedule(
+      principal: principal,
+      annualRate: annualRate,
+      years: years,
+      monthlyEmi: monthlyEmi,
+    );
 
     setState(() {
       emi = monthlyEmi;
       totalPayment = payment;
       totalInterest = interest;
       loanPrincipal = principal;
+      repaymentData = schedule;
       calculated = true;
     });
+  }
+
+  List<double> _calculateRepaymentSchedule({
+    required double principal,
+    required double annualRate,
+    required double years,
+    required double monthlyEmi,
+  }) {
+    final monthlyRate = annualRate / 100 / 12;
+    final totalMonths = (years * 12).round();
+    final balances = <double>[principal];
+
+    double balance = principal;
+
+    for (int month = 1; month <= totalMonths; month++) {
+      final interestForMonth = balance * monthlyRate;
+      final principalForMonth = monthlyEmi - interestForMonth;
+
+      balance -= principalForMonth;
+
+      if (balance < 0) {
+        balance = 0;
+      }
+
+      balances.add(balance);
+    }
+    return balances;
   }
 
   void resetCalculator() {
@@ -104,6 +140,7 @@ class _EmiScreenState extends State<EmiScreen> {
       totalPayment = 0.0;
       totalInterest = 0.0;
       loanPrincipal = 0.0;
+      repaymentData = [];
       calculated = false;
     });
 
@@ -239,7 +276,8 @@ class _EmiScreenState extends State<EmiScreen> {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 20,
+                          horizontal: 24,
+                          vertical: 20,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,7 +385,7 @@ class _EmiScreenState extends State<EmiScreen> {
                         ),
                       ],
                     );
-                  }
+                  },
                 ),
 
                 const SizedBox(height: 20),
@@ -365,7 +403,8 @@ class _EmiScreenState extends State<EmiScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Repayment Composition",
+                          const Text(
+                            "Repayment Composition",
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -375,10 +414,7 @@ class _EmiScreenState extends State<EmiScreen> {
 
                           const Text(
                             "See how your total payment is divided.",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 13, color: Colors.grey),
                           ),
                           const SizedBox(height: 20),
 
@@ -389,26 +425,32 @@ class _EmiScreenState extends State<EmiScreen> {
                               width: double.infinity,
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
-                                  final principalRatio = totalPayment > 0 ?
-                                    loanPrincipal/totalPayment: 0.0;
+                                  final principalRatio = totalPayment > 0
+                                      ? loanPrincipal / totalPayment
+                                      : 0.0;
 
-                                  final interestRatio = totalPayment > 0 ?
-                                    totalInterest/totalPayment: 0.0;
+                                  final interestRatio = totalPayment > 0
+                                      ? totalInterest / totalPayment
+                                      : 0.0;
 
                                   return Row(
                                     children: [
                                       SizedBox(
-                                        width: constraints.maxWidth * principalRatio,
-                                        child: Container(color: Colors.indigo,),
+                                        width:
+                                            constraints.maxWidth *
+                                            principalRatio,
+                                        child: Container(color: Colors.indigo),
                                       ),
                                       SizedBox(
-                                        width: constraints.maxWidth * interestRatio,
-                                        child: Container(color: Colors.orange,),
-                                      )
+                                        width:
+                                            constraints.maxWidth *
+                                            interestRatio,
+                                        child: Container(color: Colors.orange),
+                                      ),
                                     ],
                                   );
-                                }
-                              )
+                                },
+                              ),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -416,7 +458,8 @@ class _EmiScreenState extends State<EmiScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text("Principal",
+                              const Text(
+                                "Principal",
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.grey,
@@ -435,7 +478,8 @@ class _EmiScreenState extends State<EmiScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text("Interest",
+                              const Text(
+                                "Interest",
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.grey,
@@ -448,12 +492,93 @@ class _EmiScreenState extends State<EmiScreen> {
                                 ),
                               ),
                             ],
-                          ),       
+                          ),
                         ],
                       ),
                     ),
                   ),
-                ),  
+                ),
+                const SizedBox(height: 20),
+
+                AnimatedEntry(
+                  delay: Duration.zero,
+                  duration: const Duration(milliseconds: 850),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Card(
+                      elevation: 0,
+                      margin: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Loan Balance Over Time",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            const Text(
+                              "See how your outstanding balance falls with each payment",
+                              style: TextStyle(fontSize: 13, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 20),
+        
+                            SizedBox(
+                              height: 240,
+                              child: LineChart(
+                                LineChartData(
+                                  minX: 0,
+                                  maxX: (repaymentData.length - 1).toDouble(),
+                                  minY: 0,
+                                  maxY: loanPrincipal,
+                                  gridData: const FlGridData(show: false),
+                                  borderData: FlBorderData(show: false),
+                                  titlesData: const FlTitlesData(
+                                    topTitles: AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                    rightTitles: AxisTitles(
+                                      sideTitles: SideTitles(showTitles: false),
+                                    ),
+                                  ),
+                                  lineBarsData: [
+                                    LineChartBarData(
+                                      spots: List.generate(
+                                        repaymentData.length,
+                                        (index) => FlSpot(
+                                          index.toDouble(),
+                                          repaymentData[index],
+                                        ),
+                                      ),
+                                      isCurved: true,
+                                      color: Colors.indigo,
+                                      barWidth: 4,
+                                      dotData: const FlDotData(show: false),
+                                      belowBarData: BarAreaData(
+                                        show: true,
+                                        color: Colors.indigo.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                )
               ],
             ],
           ),
