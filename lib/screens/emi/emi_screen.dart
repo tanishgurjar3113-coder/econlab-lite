@@ -5,6 +5,7 @@ import '../../animations/animated_entry.dart';
 import '../../widgets/app_text_field.dart';
 import '../../widgets/gradient_background.dart';
 import '../../widgets/primary_button.dart';
+import '../../widgets/animated_currency_value.dart';
 
 class EmiScreen extends StatefulWidget {
   const EmiScreen({super.key});
@@ -411,7 +412,7 @@ class _EmiScreenState extends State<EmiScreen> {
                               ),
                               const SizedBox(height: 8),
 
-                              _AnimatedCurrencyValue(
+                              AnimatedCurrencyValue(
                                 value: emi,
                                 fontSize: 34,
                               ),
@@ -814,7 +815,7 @@ class _EmiMetricCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
 
-              _AnimatedCurrencyValue(
+              AnimatedCurrencyValue(
                 value: value,
                 fontSize: 19,
               ),
@@ -826,32 +827,4 @@ class _EmiMetricCard extends StatelessWidget {
   }
 }
 
-class _AnimatedCurrencyValue extends StatelessWidget {
-  final double value;
-  final double fontSize;
 
-  const _AnimatedCurrencyValue({
-    required this.value,
-    this.fontSize = 19,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(
-        begin: 0, end: value,
-      ),
-      duration: const Duration(milliseconds: 1500),
-      curve: Curves.easeOutCubic,
-      builder: (context, animatedValue, child) {
-        return Text(
-          "₹${animatedValue.toStringAsFixed(2)}",
-          style: TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-          ),
-        );
-      }
-    );
-  }
-}
