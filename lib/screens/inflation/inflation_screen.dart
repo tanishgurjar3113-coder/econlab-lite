@@ -95,6 +95,74 @@ class _InflationScreenState extends State<InflationScreen> {
     return largest;
   }
 
+  List<Widget> _buildImpactRows() {
+    final years = double.tryParse(timeController.text);
+    
+    if (years == null || years <= 0) {
+      return [];
+    }
+
+    final increases = basketItems.map((item) {
+      return {
+        "item": item,
+        "increase": _itemInflationIncrease(item, years),
+      };
+    }).toList();
+
+    increases.sort(
+      (a, b) => (b["increase"] as double).compareTo(
+        a["increase"] as double,
+      )
+    );
+
+    final totalIncrease = basketIncrease;
+
+    return increases.map((entry) {
+      final item = entry["item"] as InflationBasketItem;
+      final increase = entry["increase"] as double;
+      final ratio = totalIncrease > 0
+         ? increase/totalIncrease: 0;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(item.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+                Text(
+                  "₹${increase.toStringAsFixed(0)}",
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                )
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: ratio.clamp(0.0, 1.0).toDouble(),
+                minHeight: 10,
+                backgroundColor: Colors.black12,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.indigo),
+              ),
+            )
+          ],
+        ),
+      );
+    }).toList();
+  }
+
   void _calculateBasket() {
     if (basketItems.isEmpty) {
       _showError("Add at least one expense to your basket.");
@@ -588,7 +656,7 @@ class _InflationScreenState extends State<InflationScreen> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              const Text("Largest Inflation Calculator",
+                                              const Text("Largest Inflation Contributor",
                                                 style: TextStyle(
                                                   fontSize: 13,
                                                   color: Colors.grey,
@@ -612,7 +680,43 @@ class _InflationScreenState extends State<InflationScreen> {
                                   )
                                 ],
 
-                                const SizedBox(height: 20)
+                                const SizedBox(height: 20),
+
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: Card(
+                                    elevation: 0,
+                                    margin: EdgeInsets.zero,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20)
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(24),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text("Inflation Impact by Expense",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+
+                                          const Text("See which expenses contribute most to the the increase.",
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 20),
+
+                                          ..._buildImpactRows(),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                )
                               ],
                             ],
                           ),
@@ -699,8 +803,14 @@ class _BasketItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.black.withValues(alpha: 0.025),
+        border: Border.all(color: Colors.black12)
+      ),
       child: Column(
         children: [
           Row(
@@ -720,6 +830,17 @@ class _BasketItemRow extends StatelessWidget {
 
               const SizedBox(width: 12),
 
+              IconButton(
+                onPressed: onRemove,
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
               Expanded(
                 child: TextFormField(
                   initialValue: item.price == 0
@@ -737,30 +858,28 @@ class _BasketItemRow extends StatelessWidget {
                 ),
               ),
 
-              IconButton(
-                onPressed: onRemove,
-                icon: const Icon(Icons.delete_outline),
-              )
+              const SizedBox(width: 12),
+
+              Expanded(
+                child:TextFormField(
+                  initialValue: item.inflationRate == 0 ? ""
+                      : item.inflationRate.toString(),
+                  decoration: const InputDecoration(
+                    labelText: "Annual Inflation Rate (%),"
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (value) {
+                    item.inflationRate = double.tryParse(value) ?? 0;
+                    onChanged();
+                  }, 
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-
-          TextFormField(
-            initialValue: item.inflationRate == 0 ? ""
-                : item.inflationRate.toString(),
-            decoration: const InputDecoration(
-              labelText: "Annual Inflation Rate (%),"
-            ),
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
-            onChanged: (value) {
-              item.inflationRate = double.tryParse(value) ?? 0;
-              onChanged();
-            }, 
-          )
         ],
-      )
+      ),
     );
   }
 }
