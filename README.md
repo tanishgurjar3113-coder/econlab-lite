@@ -53,3 +53,35 @@ lib/
 supabase/
 └── functions/
     └── sync-market/
+
+## Prerequisite Installation Steps
+
+Install the following software before setting up the project:
+
+* [Flutter SDK](https://docs.flutter.dev/get-started/install) (stable channel recommended)
+* [Git](https://git-scm.com)
+* [Google Chrome](https://www.google.com/chrome/) (for running the Flutter Web application)
+
+Verify that Flutter is installed correctly:
+
+```bash
+flutter doctor
+
+## Dependency Setup
+
+# Clone the repository
+git clone https://github.com/tanishgurjar3113-coder/econlab-lite.git
+
+# Navigate into the project directory
+cd econlab-lite
+
+# Install Flutter dependencies
+flutter pub get
+
+## How to Run the Project Locally
+
+# Start the Flutter Web application
+flutter run -d chrome
+
+# to create a production web build
+flutter build web --release
