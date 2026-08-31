@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 
 class HomeHero extends StatelessWidget {
   final VoidCallback onExploreTools;
+  final VoidCallback onExploreMarket;
+  final VoidCallback onAbout;
 
-  const HomeHero({super.key, required this.onExploreTools});
+  const HomeHero({
+    super.key, 
+    required this.onExploreTools,
+    required this.onExploreMarket,
+    required this.onAbout,
+    });
 
   @override
   Widget build(BuildContext context) {
@@ -61,9 +68,8 @@ class HomeHero extends StatelessWidget {
 
           if (!isMobile) ...[
             _NavItem(label: "TOOLS", onTap: onExploreTools),
-            _NavItem(label: "MARKETS", onTap: () {}),
-            _NavItem(label: "ABOUT", onTap: () {}),
-            _NavItem(label: "TIPS", onTap: () {}),
+            _NavItem(label: "MARKETS", onTap: onExploreMarket), 
+            _NavItem(label: "ABOUT", onTap: onAbout),
           ],
 
           if (isMobile) const Icon(Icons.menu, color: Colors.white),

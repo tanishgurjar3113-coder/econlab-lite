@@ -1,3 +1,4 @@
+// deno-lint-ignore-file
 import "@supabase/functions-js/edge-runtime.d.ts";
 import {withSupabase} from "@supabase/server";
 

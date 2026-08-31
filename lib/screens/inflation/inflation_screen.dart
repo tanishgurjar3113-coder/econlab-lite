@@ -36,16 +36,20 @@ class _InflationScreenState extends State<InflationScreen> {
   final GlobalKey _contributorKey = GlobalKey();
   bool _contributorVisible = false;
 
+  final GlobalKey _inputsKey = GlobalKey();
+  final GlobalKey _basketKey = GlobalKey();
+
   final CalculatorEducationService _educationService = CalculatorEducationService();
   List<CalculatorEducation> _education = [];
 
   final CalculatorInfoService _calculatorInfoService = CalculatorInfoService();
-
   List<CalculatorInfo> _calculatorInfo = [];
 
   double futurePrice = 0;
   double purchasingPower = 0;
   double inflationCost = 0;
+
+  int _activeIndex = 0;
 
   bool calculated = false;
 
@@ -242,6 +246,46 @@ class _InflationScreenState extends State<InflationScreen> {
     if (!_scrollController.hasClients || !calculated) {
       return;
     }
+
+    const sectionTrigger = 180.0;
+
+    final sections = <Map<String, dynamic>>[
+      {'index': 0, 'key': _inputsKey},
+      {'index': 1, 'key': _metricsKey},
+      {'index': 2, 'key': _basketKey},
+      {'index': 3, 'key': _impactKey},
+    ];
+
+    int newActiveIndex = 0;
+
+    for (final section in sections) {
+      final key = section['key'] as GlobalKey;
+      final index = section['index'] as int;
+      final sectionContext = key.currentContext;
+
+      if (sectionContext == null) {
+        return;
+      }
+
+      final renderObject = sectionContext.findRenderObject();
+
+      if (renderObject is! RenderBox || !renderObject.hasSize) {
+        continue;
+      }
+
+      final position = renderObject.localToGlobal(Offset.zero);
+
+      if (position.dy <= sectionTrigger) {
+        newActiveIndex = index;
+      }
+    }
+
+    if (newActiveIndex != _activeIndex) {
+      setState(() {
+        _activeIndex = newActiveIndex;
+      });
+    }
+
     final screenHeight = MediaQuery.sizeOf(context).height;
 
     void checkVisibility(GlobalKey key, void Function() onVisible) {
@@ -344,7 +388,7 @@ class _InflationScreenState extends State<InflationScreen> {
       purchasingPower = calculatedPurchasingPower;
       inflationCost = calculatedInflationCost;
       calculated = true;
-      _metricsVisible = false;
+      _metricsVisible = true;
       _impactVisible = false;
       _summaryVisible = false;
       _contributorVisible = false;
@@ -409,6 +453,12 @@ class _InflationScreenState extends State<InflationScreen> {
       _impactVisible = false;
       _summaryVisible = false;
       _contributorVisible = false;
+
+      basketItems.clear();
+      basketCurrentTotal = 0;
+      basketFutureTotal = 0;
+      basketIncrease = 0;
+      basketCalculated = false;
     });
     FocusScope.of(context).unfocus();
   }
@@ -455,418 +505,429 @@ class _InflationScreenState extends State<InflationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AnimatedEntry(
-          delay: const Duration(milliseconds: 100),
-          child: const Text(
-            "Inflation Calculator",
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-          ),
-        ),
-        const SizedBox(height: 8),
-
-        const Text(
-          "Understand how inflation changes ypur money's value over time.",
-          style: TextStyle(fontSize: 16, color: Colors.grey),
-        ),
-        const SizedBox(height: 30),
-
-        AnimatedEntry(
-          delay: const Duration(milliseconds: 200),
-          child: AppTextField(
-            controller: priceController,
-            label: "Current Price",
-            icon: Icons.currency_rupee,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        AnimatedEntry(
-          delay: const Duration(milliseconds: 300),
-          child: AppTextField(
-            controller: rateController,
-            label: "Annual Inflation Rate (%)",
-            icon: Icons.percent,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        AnimatedEntry(
-          delay: const Duration(milliseconds: 400),
-          child: AppTextField(
-            controller: timeController,
-            label: "Time Period (Years)",
-            icon: Icons.calendar_today,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          child: canCalculate
-              ? PrimaryButton(
-                  key: const ValueKey("calculate"),
-                  text: "Calculate",
-                  icon: Icons.calculate,
-                  onPressed: calculateInflation,
-                )
-              : const SizedBox.shrink(key: ValueKey("empty")),
-        ),
-        const SizedBox(height: 12),
-
-        OutlinedButton.icon(
-          onPressed: resetCalculator,
-          icon: const Icon(Icons.refresh),
-          label: const Text("Reset Calculator"),
-        ),
-        const SizedBox(height: 30),
-
-        if (calculated) ...[
-          const SizedBox(height: 24),
-
-          SizedBox(
-            width: double.infinity,
-            child: AnimatedEntry(
-              delay: Duration.zero,
-              duration: const Duration(milliseconds: 850),
-              child: Card(
-                elevation: 0,
-                margin: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+        Container(
+          key: _inputsKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AnimatedEntry(
+                delay: const Duration(milliseconds: 100),
+                child: const Text(
+                  "Inflation Calculator",
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 20,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Future Price",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
+              ),
+            const SizedBox(height: 8),
 
-                      AnimatedCurrencyValue(value: futurePrice, fontSize: 34),
-                      const SizedBox(height: 8),
+            const Text(
+              "Understand how inflation changes ypur money's value over time.",
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 30),
 
-                      const Text(
-                        "What the same amount may cost after inflation",
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+            AnimatedEntry(
+              delay: const Duration(milliseconds: 200),
+              child: AppTextField(
+                controller: priceController,
+                label: "Current Price",
+                icon: Icons.currency_rupee,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            AnimatedEntry(
+              delay: const Duration(milliseconds: 300),
+              child: AppTextField(
+                controller: rateController,
+                label: "Annual Inflation Rate (%)",
+                icon: Icons.percent,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            AnimatedEntry(
+              delay: const Duration(milliseconds: 400),
+              child: AppTextField(
+                controller: timeController,
+                label: "Time Period (Years)",
+                icon: Icons.calendar_today,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              child: canCalculate
+                  ? PrimaryButton(
+                      key: const ValueKey("calculate"),
+                      text: "Calculate",
+                      icon: Icons.calculate,
+                      onPressed: calculateInflation,
+                    )
+                  : const SizedBox.shrink(key: ValueKey("empty")),
+            ),
+            const SizedBox(height: 12),
+
+            OutlinedButton.icon(
+              onPressed: resetCalculator,
+              icon: const Icon(Icons.refresh),
+              label: const Text("Reset Calculator"),
+            ),
+            const SizedBox(height: 30),
+            ],
+          ),
+        ),
+
+            if (calculated) ...[
+              const SizedBox(height: 24),
+
+              SizedBox(
+                width: double.infinity,
+                child: AnimatedEntry(
+                  delay: Duration.zero,
+                  duration: const Duration(milliseconds: 850),
+                  child: Card(
+                    elevation: 0,
+                    margin: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 20,
                       ),
-                    ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Future Price",
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 8),
+
+                          AnimatedCurrencyValue(value: futurePrice, fontSize: 34),
+                          const SizedBox(height: 8),
+
+                          const Text(
+                            "What the same amount may cost after inflation",
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-          Container(
-            key: _metricsKey,
-            child: _metricsVisible
-                ? LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isWide = constraints.maxWidth >= 700;
+              Container(
+                key: _metricsKey,
+                child: _metricsVisible
+                    ? LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 700;
 
-                      if (!isWide) {
-                        final inflationCostCard = AnimatedEntry(
-                          delay: const Duration(milliseconds: 150),
-                          duration: const Duration(milliseconds: 850),
-                          child: _InflationMetricCard(
-                            label: "Inflation Cost",
-                            value: inflationCost,
-                            icon: Icons.trending_up,
-                          ),
-                        );
+                          if (!isWide) {
+                            final inflationCostCard = AnimatedEntry(
+                              delay: const Duration(milliseconds: 150),
+                              duration: const Duration(milliseconds: 850),
+                              child: _InflationMetricCard(
+                                label: "Inflation Cost",
+                                value: inflationCost,
+                                icon: Icons.trending_up,
+                              ),
+                            );
 
-                        final purchasingPowerCard = AnimatedEntry(
-                          delay: const Duration(milliseconds: 850),
-                          duration: const Duration(milliseconds: 850),
-                          child: _InflationMetricCard(
-                            label: "Purchasing Power",
-                            value: purchasingPower,
-                            icon: Icons.account_balance_wallet_outlined,
-                          ),
-                        );
+                            final purchasingPowerCard = AnimatedEntry(
+                              delay: const Duration(milliseconds: 850),
+                              duration: const Duration(milliseconds: 850),
+                              child: _InflationMetricCard(
+                                label: "Purchasing Power",
+                                value: purchasingPower,
+                                icon: Icons.account_balance_wallet_outlined,
+                              ),
+                            );
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                inflationCostCard,
+                                const SizedBox(height: 12),
+                                purchasingPowerCard,
+                              ],
+                            );
+                          }
+
+                          final inflationCostCard = AnimatedEntry(
+                            delay: Duration.zero,
+                            duration: const Duration(milliseconds: 850),
+                            child: _InflationMetricCard(
+                              label: "Inflation Cost",
+                              value: inflationCost,
+                              icon: Icons.trending_up,
+                            ),
+                          );
+
+                          final purchasingPowerCard = AnimatedEntry(
+                            delay: Duration.zero,
+                            duration: const Duration(milliseconds: 850),
+                            child: _InflationMetricCard(
+                              label: "Purchasing Power",
+                              value: purchasingPower,
+                              icon: Icons.account_balance_wallet_outlined,
+                            ),
+                          );
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: inflationCostCard),
+
+                              const SizedBox(width: 12),
+
+                              Expanded(child: purchasingPowerCard),
+                            ],
+                          );
+                        },
+                      )
+                    : const SizedBox(height: 150),
+              ),
+              const SizedBox(height: 24),
+
+              Container(
+                key: _basketKey,
+                child: AnimatedEntry(
+                  delay: const Duration(milliseconds: 450),
+                  duration: const Duration(milliseconds: 850),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Card(
+                      elevation: 0,
+                      margin: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            inflationCostCard,
-                            const SizedBox(height: 12),
-                            purchasingPowerCard,
-                          ],
-                        );
-                      }
+                            const Text(
+                              "Inflation Basket",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
 
-                      final inflationCostCard = AnimatedEntry(
-                        delay: Duration.zero,
-                        duration: const Duration(milliseconds: 850),
-                        child: _InflationMetricCard(
-                          label: "Inflation Cost",
-                          value: inflationCost,
-                          icon: Icons.trending_up,
-                        ),
-                      );
+                            const SizedBox(height: 8),
 
-                      final purchasingPowerCard = AnimatedEntry(
-                        delay: Duration.zero,
-                        duration: const Duration(milliseconds: 850),
-                        child: _InflationMetricCard(
-                          label: "Purchasing Power",
-                          value: purchasingPower,
-                          icon: Icons.account_balance_wallet_outlined,
-                        ),
-                      );
+                            const Text(
+                              "Build a personal spending basket and see how inflation could change its cost.",
+                              style: TextStyle(fontSize: 13, color: Colors.grey),
+                            ),
 
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: inflationCostCard),
+                            const SizedBox(height: 20),
 
-                          const SizedBox(width: 12),
+                            if (basketItems.isEmpty)
+                              const Text(
+                                "No expenses added yet.",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ...List.generate(basketItems.length, (index) {
+                              final item = basketItems[index];
 
-                          Expanded(child: purchasingPowerCard),
-                        ],
-                      );
-                    },
-                  )
-                : const SizedBox(height: 150),
-          ),
-          const SizedBox(height: 24),
+                              return AnimatedEntry(
+                                key: ValueKey(item),
+                                delay: Duration.zero,
+                                duration: const Duration(milliseconds: 500),
+                                child: _BasketItemRow(
+                                  item: item,
+                                  onRemove: () => _removeBasketItem(index),
+                                  onChanged: () {
+                                    setState(() {
+                                      basketCalculated = false;
+                                    });
+                                  },
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: 16),
 
-          AnimatedEntry(
-            delay: const Duration(milliseconds: 450),
-            duration: const Duration(milliseconds: 850),
-            child: SizedBox(
-              width: double.infinity,
-              child: Card(
-                elevation: 0,
-                margin: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Inflation Basket",
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                            OutlinedButton.icon(
+                              onPressed: _addBasketItem,
+                              icon: const Icon(Icons.add),
+                              label: const Text("Add Expense"),
+                            ),
 
-                      const SizedBox(height: 8),
+                            const SizedBox(height: 16),
 
-                      const Text(
-                        "Build a personal spending basket and see how inflation could change its cost.",
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
-                      ),
+                            SizedBox(
+                              width: double.infinity,
+                              child: PrimaryButton(
+                                text: "Calculate Basket",
+                                icon: Icons.calculate,
+                                onPressed: _calculateBasket,
+                              ),
+                            ),
 
-                      const SizedBox(height: 20),
+                            if (basketCalculated) ...[
+                              const SizedBox(height: 24),
 
-                      if (basketItems.isEmpty)
-                        const Text(
-                          "No expenses added yet.",
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ...List.generate(basketItems.length, (index) {
-                        final item = basketItems[index];
-
-                        return AnimatedEntry(
-                          key: ValueKey(item),
-                          delay: Duration.zero,
-                          duration: const Duration(milliseconds: 500),
-                          child: _BasketItemRow(
-                            item: item,
-                            onRemove: () => _removeBasketItem(index),
-                            onChanged: () {
-                              setState(() {
-                                basketCalculated = false;
-                              });
-                            },
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 16),
-
-                      OutlinedButton.icon(
-                        onPressed: _addBasketItem,
-                        icon: const Icon(Icons.add),
-                        label: const Text("Add Expense"),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: PrimaryButton(
-                          text: "Calculate Basket",
-                          icon: Icons.calculate,
-                          onPressed: _calculateBasket,
-                        ),
-                      ),
-
-                      if (basketCalculated) ...[
-                        const SizedBox(height: 24),
-
-                        Container(
-                          key: _summaryKey,
-                          child: _summaryVisible
-                              ? AnimatedEntry(
-                                  delay: Duration.zero,
-                                  duration: const Duration(milliseconds: 750),
-                                  child: _BasketSummary(
-                                    currentTotal: basketCurrentTotal,
-                                    futureTotal: basketFutureTotal,
-                                    increase: basketIncrease,
-                                  ),
-                                )
-                              : const SizedBox(height: 220),
-                        ),
-
-                        if (largestContributor != null) ...[
-                          const SizedBox(height: 16),
-
-                          Container(
-                            key: _contributorKey,
-                            child: _contributorVisible
-                                ? AnimatedEntry(
-                                    delay: const Duration(milliseconds: 200),
-                                    duration: const Duration(milliseconds: 750),
-                                    child: Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(16),
-                                        color: Colors.orange.withValues(
-                                          alpha: 0.08,
+                              Container(
+                                key: _summaryKey,
+                                child: _summaryVisible
+                                    ? AnimatedEntry(
+                                        delay: Duration.zero,
+                                        duration: const Duration(milliseconds: 750),
+                                        child: _BasketSummary(
+                                          currentTotal: basketCurrentTotal,
+                                          futureTotal: basketFutureTotal,
+                                          increase: basketIncrease,
                                         ),
-                                      ),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          const Icon(
-                                            Icons.trending_up,
-                                            color: Colors.orange,
-                                          ),
+                                      )
+                                    : const SizedBox(height: 220),
+                              ),
 
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
+                              if (largestContributor != null) ...[
+                                const SizedBox(height: 16),
+
+                                Container(
+                                  key: _contributorKey,
+                                  child: _contributorVisible
+                                      ? AnimatedEntry(
+                                          delay: const Duration(milliseconds: 200),
+                                          duration: const Duration(milliseconds: 750),
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(16),
+                                              color: Colors.orange.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                            ),
+                                            child: Row(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                const Text(
-                                                  "Largest Inflation Contributor",
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color: Colors.grey,
-                                                  ),
+                                                const Icon(
+                                                  Icons.trending_up,
+                                                  color: Colors.orange,
                                                 ),
 
-                                                const SizedBox(height: 4),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.start,
+                                                    children: [
+                                                      const Text(
+                                                        "Largest Inflation Contributor",
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          color: Colors.grey,
+                                                        ),
+                                                      ),
 
-                                                Text(
-                                                  largestContributor.name,
-                                                  style: const TextStyle(
-                                                    fontSize: 17,
-                                                    fontWeight: FontWeight.bold,
+                                                      const SizedBox(height: 4),
+
+                                                      Text(
+                                                        largestContributor.name,
+                                                        style: const TextStyle(
+                                                          fontSize: 17,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ],
                                             ),
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                : const SizedBox(height: 100),
-                          ),
-                        ],
+                                        )
+                                      : const SizedBox(height: 100),
+                                ),
+                              ],
 
-                        const SizedBox(height: 20),
+                              const SizedBox(height: 20),
 
-                        Container(
-                          key: _impactKey,
-                          child: _impactVisible
-                              ? AnimatedEntry(
-                                  delay: const Duration(milliseconds: 350),
-                                  duration: const Duration(milliseconds: 750),
-                                  child: SizedBox(
-                                    width: double.infinity,
-                                    child: Card(
-                                      elevation: 0,
-                                      margin: EdgeInsets.zero,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(24),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            AnimatedEntry(
-                                              delay: Duration.zero,
-                                              duration: const Duration(
-                                                milliseconds: 550,
-                                              ),
-                                              child: const Text(
-                                                "Inflation Impact by Expense",
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                              Container(
+                                key: _impactKey,
+                                child: _impactVisible
+                                    ? AnimatedEntry(
+                                        delay: const Duration(milliseconds: 350),
+                                        duration: const Duration(milliseconds: 750),
+                                        child: SizedBox(
+                                          width: double.infinity,
+                                          child: Card(
+                                            elevation: 0,
+                                            margin: EdgeInsets.zero,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(24),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  AnimatedEntry(
+                                                    delay: Duration.zero,
+                                                    duration: const Duration(
+                                                      milliseconds: 550,
+                                                    ),
+                                                    child: const Text(
+                                                      "Inflation Impact by Expense",
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+
+                                                  AnimatedEntry(
+                                                    delay: const Duration(
+                                                      milliseconds: 120,
+                                                    ),
+                                                    duration: const Duration(
+                                                      milliseconds: 550,
+                                                    ),
+                                                    child: const Text(
+                                                      "See which expenses contribute most to the increase.",
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors.grey,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 20),
+
+                                                  ..._buildImpactRows(),
+                                                ],
                                               ),
                                             ),
-                                            const SizedBox(height: 8),
-
-                                            AnimatedEntry(
-                                              delay: const Duration(
-                                                milliseconds: 120,
-                                              ),
-                                              duration: const Duration(
-                                                milliseconds: 550,
-                                              ),
-                                              child: const Text(
-                                                "See which expenses contribute most to the increase.",
-                                                style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 20),
-
-                                            ..._buildImpactRows(),
-                                          ],
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                  ),
-                                )
-                              : const SizedBox(height: 400),
+                                      )
+                                    : const SizedBox(height: 400),
+                              ),
+                            ],
+                          ],
                         ),
-                      ],
-                    ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
-      ],
+            ],
+          ],
     );
   }
 
@@ -896,6 +957,7 @@ class _InflationScreenState extends State<InflationScreen> {
                             description: "Understand how rising prices affect your future costs and purchasing power.",
                             info: _calculatorInfo,
                             education: _education,
+                            activeIndex: _activeIndex,
                           )
                       ),
                     ),
@@ -925,6 +987,7 @@ class _InflationScreenState extends State<InflationScreen> {
                           description: "Understand how rising prices affect your future costs and purchasing power.",
                           info: _calculatorInfo,
                           education: _education,
+                          activeIndex: _activeIndex,
                         ),
                     const SizedBox(height: 24),
 

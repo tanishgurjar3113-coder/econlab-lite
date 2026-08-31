@@ -57,6 +57,7 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   final CalculatorEducationService _educationService =
       CalculatorEducationService();
   List<CalculatorEducation> _education = [];
+  
 
   double futureValue = 0.0;
 

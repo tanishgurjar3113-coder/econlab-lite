@@ -13,7 +13,7 @@ class CalculatorInfoService {
           .from('calculator_info')
           .select()
           .eq('calculator', calculator)
-          .order('section_number');
+          .order('section_number', ascending: true);
 
       debugPrint('2️⃣ Supabase query completed.');
 
