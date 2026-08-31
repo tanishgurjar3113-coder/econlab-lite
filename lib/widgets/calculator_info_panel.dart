@@ -1,5 +1,6 @@
 import 'package:econlab_lite/models/calculator_info.dart';
 import 'package:flutter/material.dart';
+import '../models/calculator_education.dart';
 
 class CalculatorInfoPanel extends StatelessWidget {
   final String eyebrow;
@@ -7,6 +8,7 @@ class CalculatorInfoPanel extends StatelessWidget {
   final String description;
   final List<CalculatorInfo> info;
   final int activeIndex;
+  final List<CalculatorEducation> education;
 
   const CalculatorInfoPanel({
     super.key,
@@ -14,6 +16,7 @@ class CalculatorInfoPanel extends StatelessWidget {
     required this.title,
     required this.description,
     required this.info,
+    required this.education,
     this.activeIndex = 0,
   });
 
@@ -118,6 +121,52 @@ class CalculatorInfoPanel extends StatelessWidget {
               ),
             );
           }),
+          
+          if (education.isNotEmpty) ...[
+            const SizedBox(height: 20),
+
+            Container(height: 1,
+              color: Colors.black12,
+            ),
+            const SizedBox(height: 24),
+
+            const Text('EDUCATIONAL CONTENT',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.4,
+                color: Colors.indigo,
+              )
+            ),
+            const SizedBox(height: 20),
+
+            ...education.map((item) => Padding(
+              padding: const EdgeInsets.only(bottom: 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.heading,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+
+                  const SizedBox(height: 7),
+
+                  Text(item.content,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.3,
+                      color: Colors.black54,
+                    ),
+                  )
+                ],
+              ),
+            ))
+          ]
         ],
       ),
     );

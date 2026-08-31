@@ -8,6 +8,8 @@ import '../../widgets/primary_button.dart';
 import '../../widgets/animated_currency_value.dart';
 import '../../models/calculator_info.dart';
 import '../../service/calculator_info_service.dart';
+import '../../models/calculator_education.dart';
+import '../../service/calculator_education_service.dart';
 
 class InflationScreen extends StatefulWidget {
   const InflationScreen({super.key});
@@ -33,6 +35,9 @@ class _InflationScreenState extends State<InflationScreen> {
 
   final GlobalKey _contributorKey = GlobalKey();
   bool _contributorVisible = false;
+
+  final CalculatorEducationService _educationService = CalculatorEducationService();
+  List<CalculatorEducation> _education = [];
 
   final CalculatorInfoService _calculatorInfoService = CalculatorInfoService();
 
@@ -350,6 +355,20 @@ class _InflationScreenState extends State<InflationScreen> {
     });
   }
 
+  Future<void> _loadEducation() async {
+    try {
+      final data = await _educationService.getEducation('inflation');
+
+      if (!mounted) return;
+
+      setState(() {
+        _education = data;
+      });
+    } catch (error) {
+      debugPrint('Education load error: $error');
+    }
+  }
+
   Future<void> _loadCalculatorInfo() async {
     try {
       debugPrint('--- CPI INFO LOAD START ---');
@@ -409,6 +428,7 @@ class _InflationScreenState extends State<InflationScreen> {
     timeController.addListener(_onInputChanged);
     _scrollController.addListener(_onScroll);
     _loadCalculatorInfo();
+    _loadEducation();
   }
 
   void _onInputChanged() {
@@ -866,14 +886,18 @@ class _InflationScreenState extends State<InflationScreen> {
                   children: [
                     SizedBox(
                       width: 310,
-                      child: _calculatorInfo.isEmpty ?
-                        const SizedBox.shrink()
-                        : CalculatorInfoPanel(
-                          eyebrow: "Inflation",
-                          title: "Inflation Calculator",
-                          description: "Understand how rising prices affect your future costs and purchasing power.",
-                          info: _calculatorInfo,
-                        )
+                      height: double.infinity,
+                      child: SingleChildScrollView(
+                        child: _calculatorInfo.isEmpty
+                          ? const SizedBox.shrink()
+                          : CalculatorInfoPanel(
+                            eyebrow: "Inflation",
+                            title: "Inflation Calculator",
+                            description: "Understand how rising prices affect your future costs and purchasing power.",
+                            info: _calculatorInfo,
+                            education: _education,
+                          )
+                      ),
                     ),
                     const SizedBox(width: 28),
 
@@ -900,6 +924,7 @@ class _InflationScreenState extends State<InflationScreen> {
                           title: "Inflation Calculator",
                           description: "Understand how rising prices affect your future costs and purchasing power.",
                           info: _calculatorInfo,
+                          education: _education,
                         ),
                     const SizedBox(height: 24),
 

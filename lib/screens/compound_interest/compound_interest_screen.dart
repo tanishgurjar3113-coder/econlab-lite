@@ -1,3 +1,5 @@
+import 'package:econlab_lite/models/calculator_info.dart';
+import 'package:econlab_lite/service/calculator_info_service.dart';
 import 'package:econlab_lite/utils/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/app_text_field.dart';
@@ -12,6 +14,9 @@ import '../../animations/animated_entry.dart';
 import '../../widgets/investment_insight_card.dart';
 import '../../widgets/compound_interest_info_card.dart';
 import '../../widgets/compounding_comparison_card.dart';
+import '../../models/calculator_education.dart';
+import '../../service/calculator_education_service.dart';
+import '../../widgets/calculator_info_panel.dart';
 
 class CompoundInterestScreen extends StatefulWidget {
   const CompoundInterestScreen({super.key});
@@ -45,6 +50,13 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
   final GlobalKey _breakdownPairKey = GlobalKey();
   bool _resultPairVisible = false;
   bool _breakdownPairVisible = false;
+
+  final CalculatorInfoService _calculatorInfoService = CalculatorInfoService();
+  List<CalculatorInfo> _calculatorInfo = [];
+
+  final CalculatorEducationService _educationService =
+      CalculatorEducationService();
+  List<CalculatorEducation> _education = [];
 
   double futureValue = 0.0;
 
@@ -99,6 +111,34 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     );
   }
 
+  Future<void> _loadCalculatorInfo() async {
+    try {
+      final data = await _calculatorInfoService.getInfo('compound_interest');
+
+      if (!mounted) return;
+
+      setState(() {
+        _calculatorInfo = data;
+      });
+    } catch (error) {
+      debugPrint('Calculator Info load error: $error');
+    }
+  }
+
+  Future<void> _loadEducation() async {
+    try {
+      final data = await _educationService.getEducation('compound_interest');
+
+      if (!mounted) return;
+
+      setState(() {
+        _education = data;
+      });
+    } catch (error) {
+      debugPrint('Education load error: $error');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -107,6 +147,8 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     rateController.addListener(_onInputChanged);
     timeController.addListener(_onInputChanged);
     _scrollController.addListener(_onScroll);
+    _loadEducation();
+    _loadCalculatorInfo();
   }
 
   void _onInputChanged() {
@@ -133,9 +175,11 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
           final screenHeight = MediaQuery.sizeOf(context).height;
           final rowHeight = renderObject.size.height;
-          final visibleHeight = (screenHeight - position.dy)
-              .clamp(0.0, rowHeight);
-          
+          final visibleHeight = (screenHeight - position.dy).clamp(
+            0.0,
+            rowHeight,
+          );
+
           final visiblePercentage = visibleHeight / rowHeight;
 
           if (visiblePercentage >= 0.5) {
@@ -158,7 +202,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
           final screenHeight = MediaQuery.sizeOf(context).height;
           final cardHeight = renderObject.size.height;
-          final visibleHeight = (screenHeight - position.dy).clamp(0.0, cardHeight);
+          final visibleHeight = (screenHeight - position.dy).clamp(
+            0.0,
+            cardHeight,
+          );
           final visiblePercentage = visibleHeight / cardHeight;
 
           if (visiblePercentage >= 0.5) {
@@ -181,7 +228,10 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
 
           final screenHeight = MediaQuery.sizeOf(context).height;
           final cardHeight = renderObject.size.height;
-          final visibleHeight = (screenHeight - position.dy).clamp(0.0, cardHeight);
+          final visibleHeight = (screenHeight - position.dy).clamp(
+            0.0,
+            cardHeight,
+          );
           final visiblePercentage = visibleHeight / cardHeight;
 
           if (visiblePercentage >= 0.5) {
@@ -576,216 +626,201 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildCalculatorContent() {
     final isWideScreen = MediaQuery.sizeOf(context).width >= 1200;
     
-    return Scaffold(
-      appBar: AppBar(title: const Text("Compound Interest")),
-      body: GradientBackground(
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AnimatedEntry(
-                delay: const Duration(milliseconds: 100),
-                child: const Text(
-                  "Compound Interest Calculator",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedEntry(
+          delay: const Duration(milliseconds: 100),
+          child: const Text(
+            "Compound Interest Calculator",
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        const Text(
+          "Calculate how your investments grow over time.",
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+
+        // Principal Amount Field
+        const SizedBox(height: 30),
+
+        AnimatedEntry(
+          delay: const Duration(milliseconds: 200),
+          child: AppTextField(
+            controller: principalController,
+            label: "Principal Amount",
+            icon: Icons.account_balance_wallet,
+            keyboardType: TextInputType.number,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Interest Rate Field
+        AnimatedEntry(
+          delay: const Duration(milliseconds: 300),
+          child: AppTextField(
+            controller: rateController,
+            label: "Annual Interest Rate (%)",
+            icon: Icons.percent,
+            keyboardType: TextInputType.number,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Time Field
+        AnimatedEntry(
+          delay: const Duration(milliseconds: 400),
+          child: AppTextField(
+            controller: timeController,
+            label: "Time (Years)",
+            icon: Icons.calendar_today,
+            keyboardType: TextInputType.number,
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        AnimatedEntry(
+          delay: const Duration(milliseconds: 500),
+          child: DropdownButtonFormField<int>(
+            initialValue: frequency,
+            decoration: InputDecoration(
+              labelText: "Compounding Frequency",
+              prefixIcon: const Icon(Icons.repeat),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
+              filled: true,
+            ),
+            items: const [
+              DropdownMenuItem(value: 1, child: Text("Annually")),
+              DropdownMenuItem(value: 2, child: Text("Semi-Annually")),
+              DropdownMenuItem(value: 4, child: Text("Quarterly")),
+              DropdownMenuItem(value: 12, child: Text("Monthly")),
+              DropdownMenuItem(value: 365, child: Text("Daily")),
+            ],
+            onChanged: (value) {
+              setState(() {
+                frequency = value ?? 1;
+              });
+            },
+          ),
+        ),
 
-              const SizedBox(height: 8),
+        const SizedBox(height: 24),
 
-              const Text(
-                "Calculate how your investments grow over time.",
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          transitionBuilder: (child, animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.15),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
               ),
+            );
+          },
+          child: canCalculate
+              ? PrimaryButton(
+                  key: const ValueKey("calculate"),
+                  text: "Calculate",
+                  icon: Icons.calculate,
+                  onPressed: calculateCompoundInterest,
+                )
+              : const SizedBox.shrink(key: ValueKey("empty")),
+        ),
 
-              // Principal Amount Field
-              const SizedBox(height: 30),
+        const SizedBox(height: 12),
 
-              AnimatedEntry(
-                delay: const Duration(milliseconds: 200),
-                child: AppTextField(
-                  controller: principalController,
-                  label: "Principal Amount",
-                  icon: Icons.account_balance_wallet,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
+        OutlinedButton.icon(
+          onPressed: resetCalculator,
+          icon: const Icon(Icons.refresh),
+          label: const Text("Reset Calculator"),
+        ),
 
-              const SizedBox(height: 20),
+        const SizedBox(height: 30),
 
-              // Interest Rate Field
-              AnimatedEntry(
-                delay: const Duration(milliseconds: 300),
-                child: AppTextField(
-                  controller: rateController,
-                  label: "Annual Interest Rate (%)",
-                  icon: Icons.percent,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Time Field
-              AnimatedEntry(
-                delay: const Duration(milliseconds: 400),
-                child: AppTextField(
-                  controller: timeController,
-                  label: "Time (Years)",
-                  icon: Icons.calendar_today,
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              AnimatedEntry(
-                delay: const Duration(milliseconds: 500),
-                child: DropdownButtonFormField<int>(
-                  initialValue: frequency,
-                  decoration: InputDecoration(
-                    labelText: "Compounding Frequency",
-                    prefixIcon: const Icon(Icons.repeat),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    filled: true,
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 1, child: Text("Annually")),
-                    DropdownMenuItem(value: 2, child: Text("Semi-Annually")),
-                    DropdownMenuItem(value: 4, child: Text("Quarterly")),
-                    DropdownMenuItem(value: 12, child: Text("Monthly")),
-                    DropdownMenuItem(value: 365, child: Text("Daily")),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      frequency = value ?? 1;
-                    });
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
-                transitionBuilder: (child, animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.15),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
-                    ),
-                  );
-                },
-                child: canCalculate
-                    ? PrimaryButton(
-                        key: const ValueKey("calculate"),
-                        text: "Calculate",
-                        icon: Icons.calculate,
-                        onPressed: calculateCompoundInterest,
-                      )
-                    : const SizedBox.shrink(key: ValueKey("empty")),
-              ),
-
-              const SizedBox(height: 12),
-
-              OutlinedButton.icon(
-                onPressed: resetCalculator,
-                icon: const Icon(Icons.refresh),
-                label: const Text("Reset Calculator"),
-              ),
-
-              const SizedBox(height: 30),
-
-              if (isWideScreen) ...[
-                _responsiveRow(
-                  context: context,
-                  left: Container(
-                    child: _resultPairVisible ?
-                        AnimatedEntry(
-                          delay: Duration.zero,
-                          duration: const Duration(milliseconds: 850),
-                          child: ResultCard(
-                            title: "Fuure Value",
-                            value: futureValue,
-                            subtitle: "Total amount after your selected period",
-                          ),
-                        ): const SizedBox(height: 135,),
-                  ),
-                  right: Container(
-                    child: _resultPairVisible ?
-                        AnimatedEntry(
-                          delay: Duration.zero,
-                          duration: const Duration(milliseconds: 850,),
-                          child: InvestmentInsightCard(
-                            investedAmount: investedAmount,
-                            futureValue: futureValue,
-                          ),
-                        ): const SizedBox(height: 135,),
-                  ),
-                ),
-              ] else ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: ResultCard(
-                    title: "Future Value",
-                    value: futureValue,
-                    subtitle: "Total amount after your selected period",
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                Container(
-                  key: _insightKey,
-                  child: _insightVisible ?
-                      AnimatedEntry(
-                        delay: Duration.zero,
-                        duration: const Duration(milliseconds: 850),
-                        child: InvestmentInsightCard(
+        if (isWideScreen) ...[
+          _responsiveRow(
+            context: context,
+            left: Container(
+              child: _resultPairVisible
+                  ? AnimatedEntry(
+                      delay: Duration.zero,
+                      duration: const Duration(milliseconds: 850),
+                      child: ResultCard(
+                        title: "Fuure Value",
+                        value: futureValue,
+                        subtitle: "Total amount after your selected period",
+                      ),
+                    )
+                  : const SizedBox(height: 135),
+            ),
+            right: Container(
+              child: _resultPairVisible
+                  ? AnimatedEntry(
+                      delay: Duration.zero,
+                      duration: const Duration(milliseconds: 850),
+                      child: InvestmentInsightCard(
                         investedAmount: investedAmount,
                         futureValue: futureValue,
-                        ),
-                      ): const SizedBox(height: 135,),
-                ),
-              ],
+                      ),
+                    )
+                  : const SizedBox(height: 135),
+            ),
+          ),
+        ] else ...[
+          SizedBox(
+            width: double.infinity,
+            child: ResultCard(
+              title: "Future Value",
+              value: futureValue,
+              subtitle: "Total amount after your selected period",
+            ),
+          ),
 
-              const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-              if (growthData.isNotEmpty) ...[
-                const SizedBox(height: 24),
+          Container(
+            key: _insightKey,
+            child: _insightVisible
+                ? AnimatedEntry(
+                    delay: Duration.zero,
+                    duration: const Duration(milliseconds: 850),
+                    child: InvestmentInsightCard(
+                      investedAmount: investedAmount,
+                      futureValue: futureValue,
+                    ),
+                  )
+                : const SizedBox(height: 135),
+          ),
+        ],
 
-              Container(
-                key: _breakdownPairKey,
-                child: _responsiveRow(
-                  context: context,
-                  left: Container(
-                    key: _breakdownKey,
-                    child: isWideScreen
-                       ? (_breakdownPairVisible
-                            ? AnimatedEntry(
-                                delay: Duration.zero,
-                                duration: const Duration(milliseconds: 850,),
-                                child: InvestmentBreakdownCard(
-                                  investedAmount: investedAmount,
-                                  interestEarned: futureValue - investedAmount,
-                                  time: double.tryParse(timeController.text) ?? 0,
-                                  frequency: frequency,
-                                ),
-                              ): const SizedBox(height: 135))
-                            : (_breakdownVisible ?
-                            AnimatedEntry(
+        const SizedBox(height: 24),
+
+        if (growthData.isNotEmpty) ...[
+          const SizedBox(height: 24),
+
+          Container(
+            key: _breakdownPairKey,
+            child: _responsiveRow(
+              context: context,
+              left: Container(
+                key: _breakdownKey,
+                child: isWideScreen
+                    ? (_breakdownPairVisible
+                          ? AnimatedEntry(
                               delay: Duration.zero,
                               duration: const Duration(milliseconds: 850),
                               child: InvestmentBreakdownCard(
@@ -794,238 +829,348 @@ class _CompoundInterestScreenState extends State<CompoundInterestScreen> {
                                 time: double.tryParse(timeController.text) ?? 0,
                                 frequency: frequency,
                               ),
-                            ): const SizedBox(height: 135,)),
-                          ),
-                      right: Container(
-                        key: _comparisonKey,
-                        child: isWideScreen ?
-                        (_breakdownPairVisible
+                            )
+                          : const SizedBox(height: 135))
+                    : (_breakdownVisible
                           ? AnimatedEntry(
-                            delay: Duration.zero,
-                            duration: const Duration(milliseconds: 850,),
-                            child: CompoundingComparisonCard(
-                              comparison: compoundingComparison,
-                              selectedFrequency: frequency,
-                              animate: true,
-                            ),
-                          ): const SizedBox(height: 340,))
-                          : (_comparisonVisible ? 
-                          AnimatedEntry(
-                            delay: Duration.zero,
-                            duration: const Duration(milliseconds: 850,),
-                            child: CompoundingComparisonCard(
-                              comparison: compoundingComparison,
-                              selectedFrequency: frequency,
-                              animate: true,
-                            ),
-                          ): const SizedBox(height: 340)),
-                      ),
-                    ),
+                              delay: Duration.zero,
+                              duration: const Duration(milliseconds: 850),
+                              child: InvestmentBreakdownCard(
+                                investedAmount: investedAmount,
+                                interestEarned: futureValue - investedAmount,
+                                time: double.tryParse(timeController.text) ?? 0,
+                                frequency: frequency,
+                              ),
+                            )
+                          : const SizedBox(height: 135)),
               ),
-                const SizedBox(height: 16),
+              right: Container(
+                key: _comparisonKey,
+                child: isWideScreen
+                    ? (_breakdownPairVisible
+                          ? AnimatedEntry(
+                              delay: Duration.zero,
+                              duration: const Duration(milliseconds: 850),
+                              child: CompoundingComparisonCard(
+                                comparison: compoundingComparison,
+                                selectedFrequency: frequency,
+                                animate: true,
+                              ),
+                            )
+                          : const SizedBox(height: 340))
+                    : (_comparisonVisible
+                          ? AnimatedEntry(
+                              delay: Duration.zero,
+                              duration: const Duration(milliseconds: 850),
+                              child: CompoundingComparisonCard(
+                                comparison: compoundingComparison,
+                                selectedFrequency: frequency,
+                                animate: true,
+                              ),
+                            )
+                          : const SizedBox(height: 340)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
 
-                Container(
-                  key: _infoKey,
-                  child: _infoVisible ? 
-                      AnimatedEntry(
-                        delay: Duration.zero,
-                        duration: const Duration(milliseconds: 850,),
-                        child: const CompoundInterestInfoCard(),
-                      ) : const SizedBox(height: 220,),
-                ),
+          Container(
+            key: _infoKey,
+            child: _infoVisible
+                ? AnimatedEntry(
+                    delay: Duration.zero,
+                    duration: const Duration(milliseconds: 850),
+                    child: const CompoundInterestInfoCard(),
+                  )
+                : const SizedBox(height: 220),
+          ),
 
-                const SizedBox(height: 24),
+          const SizedBox(height: 24),
 
-                TweenAnimationBuilder(
-                  tween: Tween<double>(
-                    begin: 0.0,
-                    end: _chartVisible ? 1.0 : 0.0,
-                  ),
-                  duration: const Duration(milliseconds: 1600),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, progress, child) {
-                    return Container(
-                      key: _chartKey,
+          TweenAnimationBuilder(
+            tween: Tween<double>(begin: 0.0, end: _chartVisible ? 1.0 : 0.0),
+            duration: const Duration(milliseconds: 1600),
+            curve: Curves.easeOutCubic,
+            builder: (context, progress, child) {
+              return Container(
+                key: _chartKey,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: GrowthChartCard(
+                    title: "Investment Growth",
+                    chart: Padding(
+                      padding: const EdgeInsetsGeometry.symmetric(
+                        horizontal: 20,
+                      ),
                       child: SizedBox(
                         width: double.infinity,
-                        child: GrowthChartCard(
-                          title: "Investment Growth",
-                          chart: Padding(
-                            padding: const EdgeInsetsGeometry.symmetric(
-                              horizontal: 20,
-                            ),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: AspectRatio(
-                                aspectRatio: 2.15,
-                                child: LineChart(
-                                  LineChartData(
-                                    minX: -_chartXPadding(),
-                                    maxX: _chartMaxX(),
-                                    minY: _chartMinY(),
-                                    maxY: _chartMaxY(),
+                        child: AspectRatio(
+                          aspectRatio: 2.15,
+                          child: LineChart(
+                            LineChartData(
+                              minX: -_chartXPadding(),
+                              maxX: _chartMaxX(),
+                              minY: _chartMinY(),
+                              maxY: _chartMaxY(),
 
-                                    gridData: const FlGridData(show: false),
-                                    borderData: FlBorderData(
-                                      show: true,
-                                      border: Border(
-                                        left: BorderSide(
-                                          color: Colors.black.withValues(alpha: 0.18),
-                                          width: 1,
-                                        ),
-                                      ),
-                                    ),
-                                    lineTouchData: LineTouchData(
-                                      enabled: true,
-                                      handleBuiltInTouches: true,
-                                      touchTooltipData: LineTouchTooltipData(
-                                        getTooltipItems: (touchedSpots) {
-                                          return touchedSpots.map((spot) {
-                                            return LineTooltipItem(
-                                              "Year ${spot.x.toInt()}\n"
-                                              "${CurrencyFormatter.format(spot.y)}",
-                                              const TextStyle(fontWeight: FontWeight.w600,),
-                                            );
-                                          }).toList();
-                                        }
-                                      )
-                                    ),
-
-                                    extraLinesData: ExtraLinesData(
-                                      horizontalLines: [
-                                        HorizontalLine(y: investedAmount,
-                                            strokeWidth: 1,
-                                            color: Colors.indigo.withValues(alpha: 0.18,),
-                                            dashArray: [6, 6],
-                                        ),
-                                      ],
-                                    ),
-                                    titlesData: FlTitlesData(
-                                      topTitles: const AxisTitles(
-                                        sideTitles: SideTitles(showTitles: false),
-                                      ),
-                                      rightTitles: const AxisTitles(
-                                        sideTitles: SideTitles(showTitles: false,
-                                          reservedSize: 0,
-                                        ),
-                                      ),
-                                      bottomTitles: AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          interval: 1,
-                                          reservedSize: 32,
-                                          getTitlesWidget: (value, meta) {
-                                            final double totalYears = growthTimes.last;
-
-                                            if (value < 0) {
-                                              return const SizedBox.shrink();
-                                            }
-
-                                            final year = value.round();
-                                            if ((value - year).abs() > 0.01) {
-                                              return const SizedBox.shrink();
-                                            }
-
-                                            if (year > totalYears) {
-                                              return const SizedBox.shrink();
-                                            }
-                                            final interval = _chartYearInterval();
-
-                                            final isRegularTick = year % interval == 0;
-
-                                            if (!isRegularTick && year != totalYears) {
-                                              return const SizedBox.shrink();
-                                            }
-
-                                            if (year == totalYears && !isRegularTick) {
-                                              final previousTick = (totalYears ~/ interval) * interval;
-                                              final gap = totalYears - previousTick;
-                                              final minimumGap = interval * 0.7;
-
-                                              if (gap < minimumGap) {
-                                                return const SizedBox.shrink();
-                                              }
-                                            }
-
-                                            return SideTitleWidget(
-                                              meta: meta, space: 6,
-                                              fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
-                                              child: Text(
-                                                "Year $year",
-                                              style: const TextStyle(fontSize: 10),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                      leftTitles: AxisTitles(
-                                        sideTitles: SideTitles(
-                                          showTitles: true,
-                                          reservedSize: 75,
-                                          interval: _chartMaxY() - _chartMinY(),
-                                          getTitlesWidget: (value, meta) {
-                                            final minY = _chartMinY();
-                                            final maxY = _chartMaxY();
-
-                                            if ((value - minY).abs() < 0.01) {
-                                              return SideTitleWidget(
-                                                meta: meta, space: 6,
-                                                fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
-                                                child: Text(
-                                                  CurrencyFormatter.format(investedAmount),
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w600,
-                                                  )
-                                                ),
-                                              );
-                                            }
-
-                                            if ((value - maxY).abs() < 0.01) {
-                                              return SideTitleWidget(
-                                                meta: meta, space: 6,
-                                                fitInside: SideTitleFitInsideData.fromTitleMeta(meta),
-                                                child: Text(
-                                                  CurrencyFormatter.format(futureValue),
-                                                  style: const TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w600,
-                                                  )
-                                                ),
-                                              );
-                                            }
-                                            
-                                            return const SizedBox.shrink();
-                                          },
-                                        ),
-                                      ),
-                                    ),
-
-                                    lineBarsData: [
-                                      LineChartBarData(
-                                        spots: _animatedGrowthSpots(progress),
-                                        isCurved: true,
-                                        color: Colors.indigo,
-                                        barWidth: 4.5,
-                                        dotData: const FlDotData(show: false),
-                                        belowBarData: BarAreaData(
-                                          show: true,
-                                          color: Colors.indigo.withValues(alpha: 0.10),
-                                        ),
-                                      ),
-                                    ],
+                              gridData: const FlGridData(show: false),
+                              borderData: FlBorderData(
+                                show: true,
+                                border: Border(
+                                  left: BorderSide(
+                                    color: Colors.black.withValues(alpha: 0.18),
+                                    width: 1,
                                   ),
                                 ),
                               ),
+                              lineTouchData: LineTouchData(
+                                enabled: true,
+                                handleBuiltInTouches: true,
+                                touchTooltipData: LineTouchTooltipData(
+                                  getTooltipItems: (touchedSpots) {
+                                    return touchedSpots.map((spot) {
+                                      return LineTooltipItem(
+                                        "Year ${spot.x.toInt()}\n"
+                                        "${CurrencyFormatter.format(spot.y)}",
+                                        const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      );
+                                    }).toList();
+                                  },
+                                ),
+                              ),
+
+                              extraLinesData: ExtraLinesData(
+                                horizontalLines: [
+                                  HorizontalLine(
+                                    y: investedAmount,
+                                    strokeWidth: 1,
+                                    color: Colors.indigo.withValues(
+                                      alpha: 0.18,
+                                    ),
+                                    dashArray: [6, 6],
+                                  ),
+                                ],
+                              ),
+                              titlesData: FlTitlesData(
+                                topTitles: const AxisTitles(
+                                  sideTitles: SideTitles(showTitles: false),
+                                ),
+                                rightTitles: const AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: false,
+                                    reservedSize: 0,
+                                  ),
+                                ),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    interval: 1,
+                                    reservedSize: 32,
+                                    getTitlesWidget: (value, meta) {
+                                      final double totalYears =
+                                          growthTimes.last;
+
+                                      if (value < 0) {
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      final year = value.round();
+                                      if ((value - year).abs() > 0.01) {
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      if (year > totalYears) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      final interval = _chartYearInterval();
+
+                                      final isRegularTick =
+                                          year % interval == 0;
+
+                                      if (!isRegularTick &&
+                                          year != totalYears) {
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      if (year == totalYears &&
+                                          !isRegularTick) {
+                                        final previousTick =
+                                            (totalYears ~/ interval) * interval;
+                                        final gap = totalYears - previousTick;
+                                        final minimumGap = interval * 0.7;
+
+                                        if (gap < minimumGap) {
+                                          return const SizedBox.shrink();
+                                        }
+                                      }
+
+                                      return SideTitleWidget(
+                                        meta: meta,
+                                        space: 6,
+                                        fitInside:
+                                            SideTitleFitInsideData.fromTitleMeta(
+                                              meta,
+                                            ),
+                                        child: Text(
+                                          "Year $year",
+                                          style: const TextStyle(fontSize: 10),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    reservedSize: 75,
+                                    interval: _chartMaxY() - _chartMinY(),
+                                    getTitlesWidget: (value, meta) {
+                                      final minY = _chartMinY();
+                                      final maxY = _chartMaxY();
+
+                                      if ((value - minY).abs() < 0.01) {
+                                        return SideTitleWidget(
+                                          meta: meta,
+                                          space: 6,
+                                          fitInside:
+                                              SideTitleFitInsideData.fromTitleMeta(
+                                                meta,
+                                              ),
+                                          child: Text(
+                                            CurrencyFormatter.format(
+                                              investedAmount,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      if ((value - maxY).abs() < 0.01) {
+                                        return SideTitleWidget(
+                                          meta: meta,
+                                          space: 6,
+                                          fitInside:
+                                              SideTitleFitInsideData.fromTitleMeta(
+                                                meta,
+                                              ),
+                                          child: Text(
+                                            CurrencyFormatter.format(
+                                              futureValue,
+                                            ),
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      return const SizedBox.shrink();
+                                    },
+                                  ),
+                                ),
+                              ),
+
+                              lineBarsData: [
+                                LineChartBarData(
+                                  spots: _animatedGrowthSpots(progress),
+                                  isCurved: true,
+                                  color: Colors.indigo,
+                                  barWidth: 4.5,
+                                  dotData: const FlDotData(show: false),
+                                  belowBarData: BarAreaData(
+                                    show: true,
+                                    color: Colors.indigo.withValues(
+                                      alpha: 0.10,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
-              ],
-            ],
+              );
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    
+
+    return Scaffold(
+      appBar: AppBar(title: const Text("Compound Interest")),
+      body: SizedBox.expand(
+        child: GradientBackground(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 900;
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 310,
+                      height: double.infinity,
+                      child: SingleChildScrollView(
+                        child: _calculatorInfo.isEmpty
+                          ? const SizedBox.shrink()
+                          : CalculatorInfoPanel(
+                            eyebrow: "Compound Interest",
+                            title: "Compound Interest Calculator",
+                            description: "Understand how your money can grow when interest is added to the balance over time.",
+                            info: _calculatorInfo,
+                            education: _education,
+                          )
+                      ),
+                    ),
+                    const SizedBox(width: 28),
+
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(20),
+                        child: _buildCalculatorContent(),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _calculatorInfo.isEmpty ?
+                        const SizedBox.shrink()
+                        : CalculatorInfoPanel(
+                          eyebrow: "Inflation",
+                          title: "Inflation Calculator",
+                          description: "Understand how rising prices affect your future costs and purchasing power.",
+                          info: _calculatorInfo,
+                          education: _education,
+                        ),
+                    const SizedBox(height: 24),
+
+                    _buildCalculatorContent(),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),

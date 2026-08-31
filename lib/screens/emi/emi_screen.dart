@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:econlab_lite/models/calculator_info.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../../animations/animated_entry.dart';
@@ -6,6 +7,10 @@ import '../../widgets/app_text_field.dart';
 import '../../widgets/gradient_background.dart';
 import '../../widgets/primary_button.dart';
 import '../../widgets/animated_currency_value.dart';
+import '../../models/calculator_education.dart';
+import '../../service/calculator_education_service.dart';
+import '../../service/calculator_info_service.dart';
+import '../../widgets/calculator_info_panel.dart';
 
 class EmiScreen extends StatefulWidget {
   const EmiScreen({super.key});
@@ -23,6 +28,13 @@ class _EmiScreenState extends State<EmiScreen> {
   final GlobalKey _compositionKey = GlobalKey();
   final GlobalKey _balanceChartKey = GlobalKey();
   final GlobalKey _metricsKey = GlobalKey();
+
+  final CalculatorEducationService _educationService =
+      CalculatorEducationService();
+  List<CalculatorEducation> _education = [];
+
+  final CalculatorInfoService _calculatorInfoService = CalculatorInfoService();
+  List<CalculatorInfo> _calculatorInfo = [];
 
   bool _compositionVisible = false;
   bool _balanceChartVisible = false;
@@ -64,6 +76,34 @@ class _EmiScreenState extends State<EmiScreen> {
     return principal * monthlyRate * factor / (factor - 1);
   }
 
+  Future<void> _loadCalculatorInfo() async {
+    try {
+      final data = await _calculatorInfoService.getInfo('emi');
+
+      if (!mounted) return;
+
+      setState(() {
+        _calculatorInfo = data;
+      });
+    } catch (error) {
+      debugPrint('Calculator info load error: $error');
+    }
+  }
+
+  Future<void> _loadEducation() async {
+    try {
+      final data = await _educationService.getEducation('emi');
+
+      if (!mounted) return;
+
+      setState(() {
+        _education = data;
+      });
+    } catch (error) {
+      debugPrint('Education load error: $error');
+    }
+  }
+
   void _onScroll() {
     if (!_scrollController.hasClients || !calculated) {
       return;
@@ -71,9 +111,7 @@ class _EmiScreenState extends State<EmiScreen> {
 
     final screenHeight = MediaQuery.sizeOf(context).height;
 
-    void checkVisibility(GlobalKey key,
-      void Function() onVisible,
-    ) {
+    void checkVisibility(GlobalKey key, void Function() onVisible) {
       final currentContext = key.currentContext;
 
       if (currentContext == null) {
@@ -88,10 +126,8 @@ class _EmiScreenState extends State<EmiScreen> {
 
       final position = renderObject.localToGlobal(Offset.zero);
       final cardHeight = renderObject.size.height;
-      final visibleHeight = (screenHeight - position.dy).clamp(
-        0.0, cardHeight,
-      );
-      final visiblePercentage = visibleHeight/cardHeight;
+      final visibleHeight = (screenHeight - position.dy).clamp(0.0, cardHeight);
+      final visiblePercentage = visibleHeight / cardHeight;
 
       if (visiblePercentage >= 0.5) {
         onVisible();
@@ -99,33 +135,27 @@ class _EmiScreenState extends State<EmiScreen> {
     }
 
     if (!_compositionVisible) {
-      checkVisibility(
-        _compositionKey, () {
-          setState(() {
-            _compositionVisible = true;
-          });
-        }
-      );
+      checkVisibility(_compositionKey, () {
+        setState(() {
+          _compositionVisible = true;
+        });
+      });
     }
 
     if (!_balanceChartVisible) {
-      checkVisibility(
-        _balanceChartKey, () {
-          setState(() {
-            _balanceChartVisible = true;
-          });
-        }
-      );
+      checkVisibility(_balanceChartKey, () {
+        setState(() {
+          _balanceChartVisible = true;
+        });
+      });
     }
 
     if (!_metricsVisible) {
-      checkVisibility(
-        _metricsKey, () {
-          setState(() {
-            _metricsVisible = true;
-          });
-        }
-      );
+      checkVisibility(_metricsKey, () {
+        setState(() {
+          _metricsVisible = true;
+        });
+      });
     }
   }
 
@@ -186,15 +216,13 @@ class _EmiScreenState extends State<EmiScreen> {
       _onScroll();
     });
 
-    Future.delayed(
-      const Duration(milliseconds: 50), () {
-        if (!mounted) return;
+    Future.delayed(const Duration(milliseconds: 50), () {
+      if (!mounted) return;
 
-        setState(() {
-          _repaymentProgress = 1.0;
-        });
-      }
-    );
+      setState(() {
+        _repaymentProgress = 1.0;
+      });
+    });
   }
 
   List<double> _calculateRepaymentSchedule({
@@ -225,7 +253,7 @@ class _EmiScreenState extends State<EmiScreen> {
   }
 
   int _repaymentChartInterval() {
-    final totalMonths = repaymentData.length -1;
+    final totalMonths = repaymentData.length - 1;
 
     if (totalMonths <= 12) {
       return 2;
@@ -277,6 +305,8 @@ class _EmiScreenState extends State<EmiScreen> {
     rateController.addListener(_onInputChanged);
     tenureController.addListener(_onInputChanged);
     _scrollController.addListener(_onScroll);
+    _loadEducation();
+    _loadCalculatorInfo();
   }
 
   void _onInputChanged() {
@@ -298,97 +328,194 @@ class _EmiScreenState extends State<EmiScreen> {
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("EMI Calculator")),
-      body: SizedBox.expand(
-        child: GradientBackground(
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedEntry(
-                  delay: const Duration(milliseconds: 100),
-                  child: const Text(
-                    "EMI Calculator",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+  Widget _buildCalculatorContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AnimatedEntry(
+          delay: const Duration(milliseconds: 100),
+          child: const Text(
+            "EMI Calculator",
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        const Text(
+          "Plan your loan repayments with clarity.",
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+        const SizedBox(height: 30),
+
+        AnimatedEntry(
+          delay: const Duration(milliseconds: 200),
+          child: AppTextField(
+            controller: loanController,
+            label: "Loan Amount",
+            icon: Icons.account_balance,
+            keyboardType: TextInputType.number,
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        AnimatedEntry(
+          delay: const Duration(milliseconds: 300),
+          child: AppTextField(
+            controller: rateController,
+            label: "Annual Interest Rate (%)",
+            icon: Icons.percent,
+            keyboardType: TextInputType.number,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        AnimatedEntry(
+          delay: const Duration(milliseconds: 400),
+          child: AppTextField(
+            controller: tenureController,
+            label: "Loan Tenure (Years)",
+            icon: Icons.calendar_today,
+            keyboardType: TextInputType.number,
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 400),
+          child: canCalculate
+              ? PrimaryButton(
+                  key: const ValueKey("Calculate"),
+                  text: "Calculate",
+                  icon: Icons.calculate,
+                  onPressed: calculateEmi,
+                )
+              : const SizedBox.shrink(key: ValueKey("empty")),
+        ),
+
+        const SizedBox(height: 12),
+
+        OutlinedButton.icon(
+          onPressed: resetCalculator,
+          icon: const Icon(Icons.refresh),
+          label: const Text("Reset Calculator"),
+        ),
+        const SizedBox(height: 30),
+
+        if (calculated) ...[
+          const SizedBox(height: 24),
+
+          SizedBox(
+            width: double.infinity,
+            child: AnimatedEntry(
+              delay: Duration.zero,
+              duration: const Duration(milliseconds: 850),
+              child: Card(
+                elevation: 0,
+                margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 20,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Monthly EMI",
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+
+                      AnimatedCurrencyValue(value: emi, fontSize: 34),
+                      const SizedBox(height: 8),
+
+                      const Text(
+                        "Your estimated monthly repayment",
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
+              ),
+            ),
+          ),
 
-                const Text(
-                  "Plan your loan repayments with clarity.",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-                const SizedBox(height: 30),
+          const SizedBox(height: 16),
 
-                AnimatedEntry(
-                  delay: const Duration(milliseconds: 200),
-                  child: AppTextField(
-                    controller: loanController,
-                    label: "Loan Amount",
-                    icon: Icons.account_balance,
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(height: 20),
+          Container(
+            key: _metricsKey,
+            child: _metricsVisible
+                ? LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth >= 700;
+                      final interestCard = AnimatedEntry(
+                        delay: const Duration(milliseconds: 150),
+                        duration: const Duration(milliseconds: 850),
+                        child: _EmiMetricCard(
+                          label: "Total Interest",
+                          value: totalInterest,
+                          icon: Icons.trending_up,
+                        ),
+                      );
+                      final paymentCard = AnimatedEntry(
+                        delay: const Duration(milliseconds: 300),
+                        duration: const Duration(milliseconds: 850),
+                        child: _EmiMetricCard(
+                          label: "Total Payment",
+                          value: totalPayment,
+                          icon: Icons.payments_outlined,
+                        ),
+                      );
 
-                AnimatedEntry(
-                  delay: const Duration(milliseconds: 300),
-                  child: AppTextField(
-                    controller: rateController,
-                    label: "Annual Interest Rate (%)",
-                    icon: Icons.percent,
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
+                      if (!isWide) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: interestCard,
+                            ),
 
-                const SizedBox(height: 20),
+                            const SizedBox(height: 12),
 
-                AnimatedEntry(
-                  delay: const Duration(milliseconds: 400),
-                  child: AppTextField(
-                    controller: tenureController,
-                    label: "Loan Tenure (Years)",
-                    icon: Icons.calendar_today,
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
+                            SizedBox(
+                              width: double.infinity,
+                              child: paymentCard,
+                            ),
+                          ],
+                        );
+                      }
 
-                const SizedBox(height: 24),
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: interestCard),
 
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  child: canCalculate
-                      ? PrimaryButton(
-                          key: const ValueKey("Calculate"),
-                          text: "Calculate",
-                          icon: Icons.calculate,
-                          onPressed: calculateEmi,
-                        )
-                      : const SizedBox.shrink(key: ValueKey("empty")),
-                ),
+                          const SizedBox(width: 12),
 
-                const SizedBox(height: 12),
+                          Expanded(child: paymentCard),
+                        ],
+                      );
+                    },
+                  )
+                : const SizedBox(height: 150),
+          ),
 
-                OutlinedButton.icon(
-                  onPressed: resetCalculator,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text("Reset Calculator"),
-                ),
-                const SizedBox(height: 30),
+          const SizedBox(height: 20),
 
-                if (calculated) ...[
-                  const SizedBox(height: 24),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: AnimatedEntry(
-                      delay: Duration.zero,
-                      duration: const Duration(milliseconds: 850),
+          Container(
+            key: _compositionKey,
+            child: _compositionVisible
+                ? AnimatedEntry(
+                    delay: Duration.zero,
+                    duration: const Duration(milliseconds: 850),
+                    child: SizedBox(
+                      width: double.infinity,
                       child: Card(
                         elevation: 0,
                         margin: EdgeInsets.zero,
@@ -396,33 +523,310 @@ class _EmiScreenState extends State<EmiScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 20,
-                          ),
+                          padding: const EdgeInsets.all(24),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                "Monthly EMI",
+                                "Repayment Composition",
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 8),
 
-                              AnimatedCurrencyValue(
-                                value: emi,
-                                fontSize: 34,
+                              const Text(
+                                "See how your total payment is divided.",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: SizedBox(
+                                  height: 18,
+                                  width: double.infinity,
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final principalRatio = totalPayment > 0
+                                          ? loanPrincipal / totalPayment
+                                          : 0.0;
+
+                                      final interestRatio = totalPayment > 0
+                                          ? totalInterest / totalPayment
+                                          : 0.0;
+
+                                      return Row(
+                                        children: [
+                                          SizedBox(
+                                            width:
+                                                constraints.maxWidth *
+                                                principalRatio,
+                                            height: 18,
+                                            child: const DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                color: Colors.indigo,
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width:
+                                                constraints.maxWidth *
+                                                interestRatio,
+                                            height: 18,
+                                            child: const DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    "Principal",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    "₹${loanPrincipal.toStringAsFixed(2)}",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    "Interest",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    "₹${totalInterest.toStringAsFixed(2)}",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : const SizedBox(height: 220),
+          ),
+          const SizedBox(height: 20),
+
+          Container(
+            key: _balanceChartKey,
+            child: _balanceChartVisible
+                ? AnimatedEntry(
+                    delay: Duration.zero,
+                    duration: const Duration(milliseconds: 850),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Card(
+                        elevation: 0,
+                        margin: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Loan Balance Over Time",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(height: 8),
 
                               const Text(
-                                "Your estimated monthly repayment",
+                                "See how your outstanding balance falls with each payment",
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              SizedBox(
+                                height: 240,
+                                child: TweenAnimationBuilder<double>(
+                                  tween: Tween<double>(
+                                    begin: 0.0,
+                                    end: _repaymentProgress,
+                                  ),
+                                  duration: const Duration(milliseconds: 1400),
+                                  curve: Curves.easeInOutCubic,
+                                  builder: (context, progress, child) {
+                                    final visibleCount =
+                                        (repaymentData.length * progress)
+                                            .ceil()
+                                            .clamp(1, repaymentData.length);
+
+                                    final visibleData = repaymentData
+                                        .take(visibleCount)
+                                        .toList();
+
+                                    final spots = List.generate(
+                                      visibleData.length,
+                                      (index) => FlSpot(
+                                        index.toDouble(),
+                                        visibleData[index],
+                                      ),
+                                    );
+
+                                    return LineChart(
+                                      LineChartData(
+                                        minX: 0,
+                                        maxX: (repaymentData.length - 1)
+                                            .toDouble(),
+                                        minY: 0,
+                                        maxY: loanPrincipal,
+                                        gridData: const FlGridData(show: false),
+                                        borderData: FlBorderData(
+                                          show: true,
+                                          border: Border(
+                                            left: BorderSide(
+                                              color: Colors.black12,
+                                            ),
+                                            bottom: BorderSide(
+                                              color: Colors.black12,
+                                            ),
+                                          ),
+                                        ),
+                                        lineTouchData: LineTouchData(
+                                          enabled: true,
+                                          handleBuiltInTouches: true,
+                                          touchTooltipData: LineTouchTooltipData(
+                                            getTooltipItems: (touchedSpots) {
+                                              return touchedSpots.map((spot) {
+                                                return LineTooltipItem(
+                                                  "Month ${spot.x.toInt()}\n"
+                                                  "Balance ₹${spot.y.toStringAsFixed(2)}",
+                                                  const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                );
+                                              }).toList();
+                                            },
+                                          ),
+                                        ),
+                                        titlesData: FlTitlesData(
+                                          topTitles: const AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: false,
+                                            ),
+                                          ),
+                                          rightTitles: const AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: false,
+                                            ),
+                                          ),
+                                          leftTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                              reservedSize: 55,
+                                              getTitlesWidget: (value, meta) {
+                                                if (value == 0) {
+                                                  return const Text(
+                                                    "₹0",
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                    ),
+                                                  );
+                                                }
+
+                                                if ((value - loanPrincipal)
+                                                        .abs() <
+                                                    0.01) {
+                                                  return Text(
+                                                    "₹${loanPrincipal.toStringAsFixed(0)}",
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                    ),
+                                                  );
+                                                }
+                                                return const SizedBox.shrink();
+                                              },
+                                            ),
+                                          ),
+                                          bottomTitles: AxisTitles(
+                                            sideTitles: SideTitles(
+                                              showTitles: true,
+                                              interval:
+                                                  _repaymentChartInterval()
+                                                      .toDouble(),
+                                              reservedSize: 30,
+                                              getTitlesWidget: (value, meta) {
+                                                final month = value.toInt();
+
+                                                if (month < 0 ||
+                                                    month >=
+                                                        repaymentData.length) {
+                                                  return const SizedBox.shrink();
+                                                }
+
+                                                return Text(
+                                                  "M$month",
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                        lineBarsData: [
+                                          LineChartBarData(
+                                            spots: spots,
+                                            isCurved: true,
+                                            color: Colors.indigo,
+                                            barWidth: 4,
+                                            dotData: const FlDotData(
+                                              show: false,
+                                            ),
+                                            belowBarData: BarAreaData(
+                                              show: true,
+                                              color: Colors.indigo.withValues(
+                                                alpha: 0.1,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ],
@@ -430,356 +834,85 @@ class _EmiScreenState extends State<EmiScreen> {
                         ),
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Container(
-                    key: _metricsKey,
-                    child: _metricsVisible ? 
-                      LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isWide = constraints.maxWidth >= 700;
-                        final interestCard = AnimatedEntry(
-                          delay: const Duration(milliseconds: 150),
-                          duration: const Duration(milliseconds: 850),
-                          child: _EmiMetricCard(
-                            label: "Total Interest",
-                            value: totalInterest,
-                            icon: Icons.trending_up,
-                          ),
-                        );
-                        final paymentCard = AnimatedEntry(
-                          delay: const Duration(milliseconds: 300),
-                          duration: const Duration(milliseconds: 850),
-                          child: _EmiMetricCard(
-                            label: "Total Payment",
-                            value: totalPayment,
-                            icon: Icons.payments_outlined,
-                          ),
-                        );
-
-                        if (!isWide) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              SizedBox(
-                                width: double.infinity,
-                                child: interestCard,
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              SizedBox(
-                                width: double.infinity,
-                                child: paymentCard,
-                              ),
-                            ],
-                          );
-                        }
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: interestCard,
-                            ),
-
-                            const SizedBox(width: 12),
-
-                            Expanded(
-                              child: paymentCard,
-                            ),
-                          ],
-                        );
-                      },
-                    ): const SizedBox(height: 150,),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Container(
-                    key: _compositionKey,
-                    child: _compositionVisible
-                        ? AnimatedEntry(
-                          delay: Duration.zero,
-                          duration: const Duration(milliseconds: 850),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: Card(
-                              elevation: 0,
-                              margin: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      "Repayment Composition",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    const Text(
-                                      "See how your total payment is divided.",
-                                      style: TextStyle(fontSize: 13, color: Colors.grey),
-                                    ),
-                                    const SizedBox(height: 20),
-
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: SizedBox(
-                                        height: 18,
-                                        width: double.infinity,
-                                        child: LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            final principalRatio = totalPayment > 0
-                                                ? loanPrincipal / totalPayment
-                                                : 0.0;
-
-                                            final interestRatio = totalPayment > 0
-                                                ? totalInterest / totalPayment
-                                                : 0.0;
-
-                                            return Row(
-                                              children: [
-                                                SizedBox(
-                                                  width:
-                                                      constraints.maxWidth * principalRatio,
-                                                  height: 18,
-                                                  child: const DecoratedBox(
-                                                    decoration: BoxDecoration(color: Colors.indigo),
-                                                  ),
-                                                ),
-                                                SizedBox(
-                                                  width:
-                                                      constraints.maxWidth * interestRatio,
-                                                  height: 18,
-                                                  child: const DecoratedBox(
-                                                    decoration: BoxDecoration(color: Colors.orange),
-                                                  )
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text("Principal",
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                        Text(
-                                          "₹${loanPrincipal.toStringAsFixed(2)}",
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text("Interest",
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                        Text(
-                                          "₹${totalInterest.toStringAsFixed(2)}",
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ): const SizedBox(height: 220,)
-                  ),
-                  const SizedBox(height: 20),
-
-                  Container(
-                    key: _balanceChartKey,
-                    child: _balanceChartVisible 
-                        ? AnimatedEntry(
-                          delay: Duration.zero,
-                          duration: const Duration(milliseconds: 850),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: Card(
-                              elevation: 0,
-                              margin: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      "Loan Balance Over Time",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-
-                                    const Text(
-                                      "See how your outstanding balance falls with each payment",
-                                      style: TextStyle(fontSize: 13, color: Colors.grey),
-                                    ),
-                                    const SizedBox(height: 20),
-                
-                                    SizedBox(
-                                      height: 240,
-                                      child: TweenAnimationBuilder<double>(
-                                        tween: Tween<double>(begin: 0.0,
-                                          end: _repaymentProgress,
-                                        ),
-                                        duration: const Duration(milliseconds: 1400),
-                                        curve: Curves.easeInOutCubic,
-                                        builder: (context, progress, child) {
-                                          final visibleCount = (repaymentData.length * progress)
-                                              .ceil().clamp(1, repaymentData.length);
-
-                                          final visibleData = repaymentData.take(visibleCount).toList();
-
-                                          final spots = List.generate(visibleData.length,
-                                            (index) => FlSpot(
-                                              index.toDouble(), visibleData[index],
-                                            )
-                                          ); 
-
-                                          return LineChart(
-                                            LineChartData(
-                                              minX: 0,
-                                              maxX: (repaymentData.length - 1).toDouble(),
-                                              minY: 0,
-                                              maxY: loanPrincipal,
-                                              gridData: const FlGridData(show: false),
-                                              borderData: FlBorderData(show: true,
-                                                border: Border(
-                                                  left: BorderSide(color: Colors.black12),
-                                                  bottom: BorderSide(color: Colors.black12)
-                                                )
-                                              ),
-                                              lineTouchData: LineTouchData(enabled: true,
-                                                handleBuiltInTouches: true,
-                                                touchTooltipData: LineTouchTooltipData(
-                                                  getTooltipItems: (touchedSpots) {
-                                                    return touchedSpots.map((spot) {
-                                                      return LineTooltipItem(
-                                                        "Month ${spot.x.toInt()}\n"
-                                                        "Balance ₹${spot.y.toStringAsFixed(2)}",
-                                                        const TextStyle(fontWeight: FontWeight.w600),
-                                                      );
-                                                    }).toList();
-                                                  }
-                                                )
-                                              ),
-                                              titlesData: FlTitlesData(
-                                                topTitles: const AxisTitles(
-                                                  sideTitles: SideTitles(showTitles: false),
-                                                ),
-                                                rightTitles: const AxisTitles(
-                                                  sideTitles: SideTitles(showTitles: false),
-                                                ),
-                                                leftTitles: AxisTitles(
-                                                  sideTitles: SideTitles(showTitles: true,
-                                                    reservedSize: 55,
-                                                    getTitlesWidget: (value, meta) {
-                                                      if (value == 0) {
-                                                        return const Text("₹0",
-                                                          style: TextStyle(fontSize: 10),
-                                                        );
-                                                      }
-
-                                                      if ((value - loanPrincipal).abs() < 0.01) {
-                                                        return Text(
-                                                          "₹${loanPrincipal.toStringAsFixed(0)}",
-                                                          style: const TextStyle(fontSize: 10),
-                                                        );
-                                                      }
-                                                      return const SizedBox.shrink();
-                                                    }
-                                                  )
-                                                ),
-                                                bottomTitles: AxisTitles(
-                                                  sideTitles: SideTitles(showTitles: true,
-                                                    interval: _repaymentChartInterval().toDouble(),
-                                                    reservedSize: 30,
-                                                    getTitlesWidget: (value, meta) {
-                                                      final month = value.toInt();
-
-                                                      if (month < 0 || month >= repaymentData.length) {
-                                                        return const SizedBox.shrink();
-                                                      }
-
-                                                      return Text("M$month",
-                                                        style: const TextStyle(fontSize: 10)
-                                                      );
-                                                    }
-                                                  )
-                                                )
-                                              ),
-                                              lineBarsData: [
-                                                LineChartBarData(
-                                                  spots: spots,
-                                                  isCurved: true,
-                                                  color: Colors.indigo,
-                                                  barWidth: 4,
-                                                  dotData: const FlDotData(show: false),
-                                                  belowBarData: BarAreaData(
-                                                    show: true,
-                                                    color: Colors.indigo.withValues(
-                                                      alpha: 0.1,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        }
-                                      )
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ): const SizedBox(height: 330,),         
                   )
-                ],
-              ],
-            ),
+                : const SizedBox(height: 330),
+          ),
+        ],
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("EMI Calculator")),
+      body: SizedBox.expand(
+        child: GradientBackground(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 900;
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 310,
+                      height: double.infinity,
+                      child: SingleChildScrollView(
+                        child: _calculatorInfo.isEmpty
+                          ? const SizedBox.shrink()
+                          : CalculatorInfoPanel(
+                            eyebrow: "EMI",
+                            title: "EMI Calculator",
+                            description: "Understand how your loan amount, interest rate, and tenure affect your monthly payment.",
+                            info: _calculatorInfo,
+                            education: _education,
+                          )
+                      ),
+                    ),
+                    const SizedBox(width: 28),
+
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(20),
+                        child: _buildCalculatorContent(),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _calculatorInfo.isEmpty ?
+                        const SizedBox.shrink()
+                        : CalculatorInfoPanel(
+                          eyebrow: "EMI",
+                          title: "EMI Calculator",
+                          description: "Understand how your loan amount, interest rate, and tenure years affect your monthly payment.",
+                          info: _calculatorInfo,
+                          education: _education,
+                        ),
+                    const SizedBox(height: 24),
+
+                    _buildCalculatorContent(),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 }
+
+
 
 class _EmiMetricCard extends StatelessWidget {
   final String label;
@@ -815,10 +948,7 @@ class _EmiMetricCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
 
-              AnimatedCurrencyValue(
-                value: value,
-                fontSize: 19,
-              ),
+              AnimatedCurrencyValue(value: value, fontSize: 19),
             ],
           ),
         ),
@@ -826,5 +956,3 @@ class _EmiMetricCard extends StatelessWidget {
     );
   }
 }
-
-
